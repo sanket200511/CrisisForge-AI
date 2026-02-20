@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Send, Bot, Bell, RefreshCw, AlertTriangle, Ambulance, CheckCircle2 } from 'lucide-react';
+import { Send, Bot, Bell, RefreshCw, AlertTriangle, Ambulance, CheckCircle2, Mail, MessageSquare, Smartphone } from 'lucide-react';
 import { api } from '../api';
 
 export default function TelegramPanel() {
@@ -31,7 +31,8 @@ export default function TelegramPanel() {
     };
 
     const sendMessage = async () => {
-        if (!botToken || !chatId) {
+        const isConfigured = status?.configured;
+        if (!isConfigured && (!botToken || !chatId)) {
             setResult({ success: false, message: 'Please enter Bot Token and Chat ID' });
             return;
         }
@@ -55,8 +56,47 @@ export default function TelegramPanel() {
     return (
         <div>
             <motion.div className="page-header" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-                <h2>📱 Telegram Alerts</h2>
-                <p>Configure autonomous crisis notifications via Telegram</p>
+                <h2>🔔 Notifications Center</h2>
+                <p>Multi-channel crisis alert management — Push, Email & SMS</p>
+            </motion.div>
+
+            {/* Notification Channel Tabs */}
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+                style={{ display: 'flex', gap: 12, marginBottom: 24 }}
+            >
+                <div style={{
+                    flex: 1, padding: '16px 20px', borderRadius: 14,
+                    background: 'rgba(6,182,212,0.08)', border: '2px solid rgba(6,182,212,0.3)',
+                    display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer'
+                }}>
+                    <Smartphone size={20} style={{ color: '#06b6d4' }} />
+                    <div>
+                        <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>Push Notifications</p>
+                        <p style={{ fontSize: '0.72rem', color: '#06b6d4' }}>✅ Active — via Telegram Bot API</p>
+                    </div>
+                </div>
+                <div style={{
+                    flex: 1, padding: '16px 20px', borderRadius: 14,
+                    background: 'var(--bg-card)', border: '1px solid var(--border-subtle)',
+                    display: 'flex', alignItems: 'center', gap: 12, opacity: 0.7, cursor: 'default'
+                }}>
+                    <Mail size={20} style={{ color: '#8b5cf6' }} />
+                    <div>
+                        <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>Email Alerts</p>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>SendGrid API — Planned</p>
+                    </div>
+                </div>
+                <div style={{
+                    flex: 1, padding: '16px 20px', borderRadius: 14,
+                    background: 'var(--bg-card)', border: '1px solid var(--border-subtle)',
+                    display: 'flex', alignItems: 'center', gap: 12, opacity: 0.7, cursor: 'default'
+                }}>
+                    <MessageSquare size={20} style={{ color: '#10b981' }} />
+                    <div>
+                        <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>SMS Alerts</p>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Twilio API — Planned</p>
+                    </div>
+                </div>
             </motion.div>
 
             <div className="charts-grid">
@@ -128,9 +168,9 @@ export default function TelegramPanel() {
                             rows={3}
                             style={{
                                 width: '100%', padding: '10px 14px', marginTop: 12,
-                                background: 'rgba(148,163,184,0.06)',
-                                border: '1px solid rgba(148,163,184,0.15)', borderRadius: 8,
-                                color: '#f1f5f9', fontSize: '0.85rem', outline: 'none', resize: 'vertical',
+                                background: 'var(--bg-tertiary)',
+                                border: '1px solid var(--border-subtle)', borderRadius: 8,
+                                color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none', resize: 'vertical',
                             }}
                         />
                     )}
@@ -160,10 +200,10 @@ export default function TelegramPanel() {
                 <motion.div className="card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
                     <h3 style={{ marginBottom: 16 }}>📝 Message Preview</h3>
                     <pre style={{
-                        background: 'rgba(148,163,184,0.04)', padding: 16, borderRadius: 8,
-                        fontSize: '0.78rem', color: '#f1f5f9', lineHeight: 1.6,
+                        background: 'var(--bg-tertiary)', padding: 16, borderRadius: 8,
+                        fontSize: '0.78rem', color: 'var(--text-primary)', lineHeight: 1.6,
                         whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-                        border: '1px solid rgba(148,163,184,0.08)',
+                        border: '1px solid var(--border-subtle)',
                         maxHeight: 500, overflowY: 'auto',
                     }}>
                         {preview || 'Loading preview...'}
@@ -181,8 +221,8 @@ export default function TelegramPanel() {
                                 { label: 'Ventilator', value: '85%', color: '#ef4444' },
                                 { label: 'Staff', value: '90%', color: '#f59e0b' },
                             ].map((t, i) => (
-                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: 'rgba(148,163,184,0.04)', borderRadius: 6 }}>
-                                    <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>{t.label}</span>
+                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: 'var(--bg-tertiary)', borderRadius: 6 }}>
+                                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{t.label}</span>
                                     <span style={{ fontSize: '0.78rem', fontWeight: 600, color: t.color }}>{t.value}</span>
                                 </div>
                             ))}

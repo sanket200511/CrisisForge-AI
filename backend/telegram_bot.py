@@ -14,11 +14,18 @@ import logging
 from typing import Dict, List, Optional
 from datetime import datetime
 
+from data_generator import generate_hospitals
+from transfer_engine import recommend_transfers
+
 logger = logging.getLogger(__name__)
 
 # Telegram config
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
+
+# Alert state tracking to prevent spam
+ALERT_HISTORY = {}
+COOLDOWN_MINUTES = 5
 
 # Alert thresholds
 THRESHOLDS = {
@@ -165,3 +172,64 @@ def get_bot_status() -> Dict:
             "step_4": "Set TELEGRAM_CHAT_ID environment variable",
         },
     }
+
+async def autonomous_monitor():
+    """Background worker that continuously monitors network health."""
+    logger.info("Starting Telegram autonomous monitoring loop...")
+    while True:
+        try:
+            # Skip if not configured
+            if not BOT_TOKEN or not CHAT_ID:
+                await asyncio.sleep(60)
+                continue
+
+            # Fetch current live data
+            hospitals = generate_hospitals(8)
+            now = datetime.now()
+
+            # 1. 95% Rule: Check for critical capacity requiring autonomous redistribution
+            redistribution_needed = False
+            breached_hospitals = []
+            for h in hospitals:
+                occupancy = h["occupied_beds"] / max(h["total_beds"], 1)
+                if occupancy >= 0.95:
+                    alert_key = f"redistribution_{h['name']}"
+                    last_alert = ALERT_HISTORY.get(alert_key)
+                    if not last_alert or (now - last_alert).total_seconds() > COOLDOWN_MINUTES * 60:
+                        redistribution_needed = True
+                        breached_hospitals.append(h['name'])
+                        ALERT_HISTORY[alert_key] = now
+
+            if redistribution_needed:
+                result = recommend_transfers(hospitals)
+                msg = f"🚨 *CRITICAL ALERT: 95% THRESHOLD BREACHED*\n"
+                msg += f"Hospitals at >95% capacity: {', '.join(breached_hospitals)}\n"
+                msg += f"Autonomous network redistribution initiated to protect resource buffers.\n\n"
+                msg += format_transfer_message(result["recommended_transfers"])
+                await send_telegram_message(msg)
+            
+            # 2. Standard Capacity Alerts
+            alerts = generate_capacity_alerts(hospitals)
+            new_alerts = []
+            for a in alerts:
+                alert_key = f"{a['hospital']}_{a['type']}_{a['level']}"
+                last_alert = ALERT_HISTORY.get(alert_key)
+                if not last_alert or (now - last_alert).total_seconds() > COOLDOWN_MINUTES * 60:
+                    new_alerts.append(a)
+                    ALERT_HISTORY[alert_key] = now
+            
+            if new_alerts:
+                summary = {
+                    "total_hospitals": len(hospitals),
+                    "bed_occupancy": round(sum(h["occupied_beds"] for h in hospitals) / max(sum(h["total_beds"] for h in hospitals), 1) * 100, 1),
+                    "icu_occupancy": round(sum(h["occupied_icu"] for h in hospitals) / max(sum(h["icu_beds"] for h in hospitals), 1) * 100, 1),
+                    "ventilator_usage": round(sum(h["ventilators_in_use"] for h in hospitals) / max(sum(h["ventilators"] for h in hospitals), 1) * 100, 1),
+                }
+                msg = format_alert_message(new_alerts, summary)
+                await send_telegram_message(msg)
+
+        except Exception as e:
+            logger.error(f"Autonomous monitor error: {e}")
+        
+        # Check every 60 seconds
+        await asyncio.sleep(60)

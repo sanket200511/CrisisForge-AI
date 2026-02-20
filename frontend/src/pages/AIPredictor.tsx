@@ -83,10 +83,10 @@ export default function AIPredictor() {
                     <h3 style={{ marginBottom: 16 }}>Patient Parameters</h3>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                         {Object.entries(FIELD_LABELS).map(([key, cfg]) => (
-                            <div key={key} className="slider-group">
-                                <div className="slider-header">
-                                    <span className="slider-label">{cfg.label}</span>
-                                    <span className="slider-value">{(patient as any)[key]}</span>
+                            <div key={key} style={{ marginBottom: 16 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: '0.85rem', fontWeight: 600 }}>
+                                    <span style={{ color: 'var(--text-secondary)' }}>{cfg.label}</span>
+                                    <span style={{ color: 'var(--accent-cyan)' }}>{(patient as any)[key]}</span>
                                 </div>
                                 <input
                                     type="range"
@@ -97,27 +97,27 @@ export default function AIPredictor() {
                                 />
                             </div>
                         ))}
-                        <div className="slider-group">
-                            <div className="slider-header">
-                                <span className="slider-label">Gender</span>
+                        <div style={{ marginBottom: 16 }}>
+                            <div style={{ marginBottom: 8, fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                <span>Gender</span>
                             </div>
                             <div className="tab-group" style={{ width: '100%' }}>
                                 <button className={`tab-btn ${patient.gender === 0 ? 'active' : ''}`} onClick={() => updateField('gender', 0)}>Female</button>
                                 <button className={`tab-btn ${patient.gender === 1 ? 'active' : ''}`} onClick={() => updateField('gender', 1)}>Male</button>
                             </div>
                         </div>
-                        <div className="slider-group">
-                            <div className="slider-header">
-                                <span className="slider-label">ICU Candidate</span>
+                        <div style={{ marginBottom: 16 }}>
+                            <div style={{ marginBottom: 8, fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                <span>ICU Candidate</span>
                             </div>
                             <div className="tab-group" style={{ width: '100%' }}>
                                 <button className={`tab-btn ${patient.is_icu_candidate === 0 ? 'active' : ''}`} onClick={() => updateField('is_icu_candidate', 0)}>No</button>
                                 <button className={`tab-btn ${patient.is_icu_candidate === 1 ? 'active' : ''}`} onClick={() => updateField('is_icu_candidate', 1)}>Yes</button>
                             </div>
                         </div>
-                        <div className="slider-group">
-                            <div className="slider-header">
-                                <span className="slider-label">Comorbidity</span>
+                        <div style={{ marginBottom: 16 }}>
+                            <div style={{ marginBottom: 8, fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                <span>Comorbidity</span>
                             </div>
                             <div className="tab-group" style={{ width: '100%' }}>
                                 <button className={`tab-btn ${patient.has_comorbidity === 0 ? 'active' : ''}`} onClick={() => updateField('has_comorbidity', 0)}>No</button>

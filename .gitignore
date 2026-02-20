@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Build output
+frontend/dist/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+backend/__pycache__/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+backend/.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Database (generated at runtime)
+backend/crisisforge.db
+
+# Documentation (not needed in repo)
+CrisisForge_Documentation/
+
+# Gemini / AI agent files
+.gemini/
+.antigravityignore

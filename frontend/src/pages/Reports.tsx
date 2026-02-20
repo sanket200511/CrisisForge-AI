@@ -63,8 +63,34 @@ export default function Reports() {
                         <h2>Reports & Analytics</h2>
                         <p>Comprehensive resource utilization analysis</p>
                     </div>
-                    <button className="btn btn-secondary" onClick={() => alert('Report export feature — coming soon!')}>
-                        <Download size={16} /> Export Report
+                    <button className="btn btn-secondary" onClick={() => {
+                        if (!data) return;
+                        const rows = [
+                            ['CrisisForge AI - Network Report', '', '', '', '', ''],
+                            ['Generated', new Date().toLocaleString(), '', '', '', ''],
+                            [''],
+                            ['Hospital', 'Region', 'Total Beds', 'Occupied', 'Occupancy %', 'Status'],
+                            ...data.hospitals.map(h => [
+                                h.name, h.region, h.total_beds, h.occupied_beds,
+                                Math.round((h.occupied_beds / h.total_beds) * 100) + '%',
+                                (h.occupied_beds / h.total_beds) >= 0.9 ? 'CRITICAL' : (h.occupied_beds / h.total_beds) >= 0.75 ? 'WARNING' : 'STABLE'
+                            ]),
+                            [''],
+                            ['Network Summary', '', '', '', '', ''],
+                            ['Total Beds', data.overview.total_beds, 'Occupied', data.overview.occupied_beds, 'Utilization', data.overview.bed_occupancy + '%'],
+                            ['Total ICU', data.overview.total_icu, 'Occupied ICU', data.overview.occupied_icu, 'ICU Utilization', data.overview.icu_occupancy + '%'],
+                        ];
+                        const csv = rows.map(r => r.join(',')).join('\n');
+                        const blob = new Blob([csv], { type: 'text/csv' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a'); a.href = url;
+                        a.download = `crisisforge_report_${new Date().toISOString().slice(0, 10)}.csv`;
+                        a.click(); URL.revokeObjectURL(url);
+                    }}>
+                        <Download size={16} /> Export CSV
+                    </button>
+                    <button className="btn btn-secondary" onClick={() => window.print()}>
+                        <FileText size={16} /> Export PDF
                     </button>
                 </div>
             </motion.div>

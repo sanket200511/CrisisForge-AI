@@ -18,6 +18,7 @@ from ml_model import get_model
 from telegram_bot import (
     format_alert_message, format_transfer_message, format_prediction_message,
     send_telegram_message, generate_capacity_alerts, get_bot_status,
+    autonomous_monitor,
 )
 from database import init_db
 
@@ -38,13 +39,16 @@ app.add_middleware(
 
 
 @app.on_event("startup")
-def startup():
+async def startup():
     init_db()
     # Pre-train ML model in background
     try:
         get_model()
     except Exception:
         pass
+    
+    # Start the autonomous Telegram monitoring loop
+    asyncio.create_task(autonomous_monitor())
 
 
 # ─── Pydantic Schemas ───

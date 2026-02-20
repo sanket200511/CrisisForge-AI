@@ -18,6 +18,18 @@ HOSPITAL_NAMES = [
     "Care Hospial",
 ]
 
+# Real GPS coordinates for Nagpur hospitals
+HOSPITAL_COORDS = [
+    (21.1280, 79.0505),   # AIIMS Nagpur (Mihan)
+    (21.1560, 79.0740),   # Kingsway Hospitals (Nagpur Central)
+    (21.1394, 79.0812),   # Wockhardt Hospital (Sadar)
+    (21.1640, 79.0870),   # Ojas Hospital (Dharampeth)
+    (21.1490, 79.0950),   # Orange City Hospital (Ambazari)
+    (21.1350, 79.1100),   # Aureus Hospital (Wardhaman Nagar)
+    (21.1720, 79.0480),   # Alexis Hospital (Manish Nagar)
+    (21.1200, 79.0650),   # Care Hospital (South Nagpur)
+]
+
 REGIONS = ["Mihan", "Sitabuldi", "Dharampeth", "Sadar", "Wardhaman Nagar"]
 
 
@@ -36,6 +48,8 @@ def generate_hospitals(count: int = 6) -> List[Dict]:
             "id": i + 1,
             "name": HOSPITAL_NAMES[i],
             "region": REGIONS[i % len(REGIONS)],
+            "lat": HOSPITAL_COORDS[i][0],
+            "lng": HOSPITAL_COORDS[i][1],
             "total_beds": total_beds,
             "icu_beds": icu_beds,
             "ventilators": ventilators,

@@ -1,10 +1,6 @@
 import { Component } from 'react';
 import type { ReactNode } from 'react';
-import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
-import {
-  LayoutDashboard, FlaskConical, GitCompare, FileBarChart, Heart,
-  ArrowRightLeft, Brain, Send,
-} from 'lucide-react';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import ScenarioBuilder from './pages/ScenarioBuilder';
 import StrategyComparator from './pages/StrategyComparator';
@@ -12,17 +8,8 @@ import Reports from './pages/Reports';
 import TransferHub from './pages/TransferHub';
 import AIPredictor from './pages/AIPredictor';
 import TelegramPanel from './pages/TelegramPanel';
+import HospitalMap from './pages/HospitalMap';
 import './index.css';
-
-const NAV_ITEMS = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/scenarios', label: 'Scenario Builder', icon: FlaskConical },
-  { path: '/compare', label: 'Strategy Comparator', icon: GitCompare },
-  { path: '/transfers', label: 'Transfer Hub', icon: ArrowRightLeft },
-  { path: '/ai', label: 'AI Predictor', icon: Brain },
-  { path: '/telegram', label: 'Telegram Alerts', icon: Send },
-  { path: '/reports', label: 'Reports & Analytics', icon: FileBarChart },
-];
 
 /* ─── Error Boundary ─── */
 interface EBState { hasError: boolean; error?: Error }
@@ -58,22 +45,54 @@ class ErrorBoundary extends Component<{ children: ReactNode }, EBState> {
 }
 
 import Sidebar from './components/Sidebar';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import Login from './pages/Login';
 
 /* ─── App Layout ─── */
+function ProtectedRoute({ children }: { children: ReactNode }) {
+  const { user, loading, isAuthEnabled } = useAuth();
+
+  // If Firebase is not configured, skip auth and let everyone in
+  if (!isAuthEnabled) {
+    return <>{children}</>;
+  }
+
+  if (loading) {
+    return (
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#06b6d4' }}>
+        <p>Loading session...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login />;
+  }
+
+  return <>{children}</>;
+}
+
 function AppContent() {
+  const location = useLocation();
+  const isLoginPage = location.pathname === '/login';
+
   return (
     <div className="app-layout">
-      <Sidebar />
-      <main className="main-content">
+      {!isLoginPage && <Sidebar />}
+      <main className={`main-content ${isLoginPage ? 'no-sidebar' : ''}`}>
         <ErrorBoundary>
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/scenarios" element={<ScenarioBuilder />} />
-            <Route path="/compare" element={<StrategyComparator />} />
-            <Route path="/transfers" element={<TransferHub />} />
-            <Route path="/ai" element={<AIPredictor />} />
-            <Route path="/telegram" element={<TelegramPanel />} />
-            <Route path="/reports" element={<Reports />} />
+            <Route path="/login" element={<Login />} />
+
+            <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/scenarios" element={<ProtectedRoute><ScenarioBuilder /></ProtectedRoute>} />
+            <Route path="/compare" element={<ProtectedRoute><StrategyComparator /></ProtectedRoute>} />
+            <Route path="/transfers" element={<ProtectedRoute><TransferHub /></ProtectedRoute>} />
+            <Route path="/ai" element={<ProtectedRoute><AIPredictor /></ProtectedRoute>} />
+            <Route path="/telegram" element={<ProtectedRoute><TelegramPanel /></ProtectedRoute>} />
+            <Route path="/map" element={<ProtectedRoute><HospitalMap /></ProtectedRoute>} />
+            <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
           </Routes>
         </ErrorBoundary>
       </main>
@@ -83,8 +102,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AppContent />
-    </BrowserRouter>
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

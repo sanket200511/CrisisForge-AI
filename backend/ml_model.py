@@ -57,7 +57,7 @@ def generate_training_data(n_samples: int = 5000, seed: int = 42) -> Tuple[np.nd
     # Generate outcomes based on feature correlations
     # Higher severity, age, lower spo2, higher occupancy → worse outcomes
     risk_score = (
-        severity * 0.25 +
+        (severity / 10) * 0.25 +
         (age / 100) * 0.15 +
         ((100 - spo2) / 30) * 0.2 +
         (resp_rate / 45) * 0.1 +
