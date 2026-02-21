@@ -2,7 +2,7 @@ fastapi
 uvicorn[standard]
 pydantic
 sqlalchemy
-numpy
+numpy<2
 scikit-learn
 aiosqlite
 python-multipart
