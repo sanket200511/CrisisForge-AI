@@ -6,6 +6,8 @@ A comprehensive, free & open-source healthcare resource allocation platform for 
 
 **Built by The Code Alchemist • HackWhack 3.0 • Nagpur**
 
+**Live Deployed Link :- https://crisisforge-ai.vercel.app/**
+
 ---
 
 ## 🌟 Key Features
