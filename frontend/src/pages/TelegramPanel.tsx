@@ -13,17 +13,19 @@ export default function TelegramPanel() {
     const [status, setStatus] = useState<Record<string, unknown> | null>(null);
     const [result, setResult] = useState<{ success: boolean; message?: string } | null>(null);
 
-    useEffect(() => {
-        api.telegramStatus().then(setStatus).catch(() => { });
-        loadPreview('alerts');
-    }, []);
-
     const loadPreview = async (type: string) => {
         try {
             const res = await api.telegramPreview(type);
             setPreview(res.preview);
-        } catch (err) { setPreview('Failed to load preview'); }
+        } catch {
+            setPreview('Failed to load preview');
+        }
     };
+
+    useEffect(() => {
+        api.telegramStatus().then(setStatus).catch(() => { });
+        loadPreview('alerts');
+    }, []);
 
     const handleTypeChange = (type: string) => {
         setMessageType(type);
@@ -47,8 +49,9 @@ export default function TelegramPanel() {
             });
             const apiResult = res.result as Record<string, unknown>;
             setResult({ success: !!apiResult.success, message: apiResult.success ? 'Message sent! ✅' : String(apiResult.error || 'Send failed') });
-        } catch (err: any) {
-            setResult({ success: false, message: err.message || 'Failed to send' });
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : 'Failed to send';
+            setResult({ success: false, message: msg });
         }
         setSending(false);
     };

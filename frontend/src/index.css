@@ -1329,3 +1329,28 @@ a:hover {
     border-radius: var(--radius-md);
   }
 }
+
+/* ─── Leaflet Map Tiles (Free OpenStreetMap - No API Key Required) ─── */
+.map-dark-tiles .leaflet-tile {
+  filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+}
+
+.map-dark-tiles .leaflet-container {
+  background-color: #0b0f19;
+}
+
+.map-dark-tiles .leaflet-popup-content-wrapper,
+.map-dark-tiles .leaflet-popup-tip {
+  background: #1e293b;
+  color: #f1f5f9;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+.map-dark-tiles .leaflet-popup-content h3 {
+  color: #38bdf8 !important;
+}
+
+.map-dark-tiles .leaflet-popup-content p {
+  color: #94a3b8 !important;
+}

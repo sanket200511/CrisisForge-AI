@@ -1,33 +1,24 @@
 """
-CrisisForge AI — Telegram Bot for Autonomous Crisis Alerts
-Sends real-time capacity alerts and crisis notifications to administrators.
-
-Usage:
-  1. Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID env variables
-  2. The bot runs alongside FastAPI and checks capacity periodically
-  3. Sends autonomous alerts when thresholds are breached
+CrisisForge AI — Telegram Bot Integration
+Provides crisis capacity notifications and patient load redistribution alerts.
 """
 
-import os
 import asyncio
 import logging
 from typing import Dict, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
+import httpx
 
+from config import settings
 from data_generator import generate_hospitals
 from transfer_engine import recommend_transfers
 
 logger = logging.getLogger(__name__)
 
-# Telegram config
-BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
-CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
+# Alert state cache to prevent spamming operators during sustained crises
+ALERT_HISTORY: Dict[str, datetime] = {}
 
-# Alert state tracking to prevent spam
-ALERT_HISTORY = {}
-COOLDOWN_MINUTES = 5
-
-# Alert thresholds
+# Capacity threshold triggers (percentage occupancies)
 THRESHOLDS = {
     "bed_critical": 90,
     "bed_warning": 80,
@@ -39,14 +30,14 @@ THRESHOLDS = {
 
 
 def format_alert_message(alerts: List[Dict], summary: Dict) -> str:
-    """Format alerts into a Telegram-ready message."""
-    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    """Format capacity alerts into a structured Telegram markdown message."""
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-    msg = f"🔥 *CrisisForge AI Alert*\n"
+    msg = "🔥 *CrisisForge AI Alert*\n"
     msg += f"📅 {now}\n\n"
 
     if summary:
-        msg += f"📊 *Network Overview*\n"
+        msg += "📊 *Network Overview*\n"
         msg += f"├ Hospitals: {summary.get('total_hospitals', 'N/A')}\n"
         msg += f"├ Bed Occ: {summary.get('bed_occupancy', 'N/A')}%\n"
         msg += f"├ ICU Occ: {summary.get('icu_occupancy', 'N/A')}%\n"
@@ -55,55 +46,58 @@ def format_alert_message(alerts: List[Dict], summary: Dict) -> str:
     if alerts:
         msg += f"⚠️ *Active Alerts ({len(alerts)})*\n"
         for a in alerts:
-            icon = "🔴" if a["level"] == "critical" else "🟡"
-            msg += f"{icon} *{a['hospital']}*: {a['message']}\n"
+            icon = "🔴" if a.get("level") == "critical" else "🟡"
+            msg += f"{icon} *{a.get('hospital')}*: {a.get('message')}\n"
     else:
-        msg += "✅ All systems within normal thresholds\n"
+        msg += "✅ All monitored facilities operate within normal capacity thresholds\n"
 
-    msg += f"\n🔗 Dashboard: http://localhost:5173"
+    msg += "\n🔗 Dashboard: http://localhost:5173"
     return msg
 
 
 def format_transfer_message(transfers: List[Dict]) -> str:
-    """Format transfer recommendations into Telegram message."""
+    """Format inter-hospital transfer recommendations into a Telegram markdown message."""
     if not transfers:
-        return "✅ No transfers recommended — network is balanced."
+        return "✅ No transfers recommended — network loads are balanced."
 
     msg = "🚑 *Patient Transfer Recommendations*\n\n"
     for t in transfers[:5]:
-        priority_icon = "🔴" if t["priority"] == "critical" else "🟡" if t["priority"] == "high" else "🟢"
-        msg += f"{priority_icon} *Transfer #{t['id']}*\n"
-        msg += f"  📤 From: {t['from_hospital']} ({t['from_pressure']}% load)\n"
-        msg += f"  📥 To: {t['to_hospital']} ({t['to_pressure']}% load)\n"
-        msg += f"  👥 Patients: {t['total_patients']} ({t['patients_general']} general + {t['patients_icu']} ICU)\n"
-        msg += f"  📏 Distance: {t['distance_km']}km (~{int(t['estimated_transfer_time_min'])}min)\n"
-        msg += f"  📉 Pressure reduction: {t['pressure_reduction']}%\n\n"
+        priority_icon = "🔴" if t.get("priority") == "critical" else "🟡" if t.get("priority") == "high" else "🟢"
+        msg += f"{priority_icon} *Transfer #{t.get('id')}*\n"
+        msg += f"  📤 From: {t.get('from_hospital')} ({t.get('from_pressure')}% load)\n"
+        msg += f"  📥 To: {t.get('to_hospital')} ({t.get('to_pressure')}% load)\n"
+        msg += f"  👥 Patients: {t.get('total_patients')} ({t.get('patients_general')} general + {t.get('patients_icu')} ICU)\n"
+        msg += f"  📏 Distance: {t.get('distance_km')}km (~{int(t.get('estimated_transfer_time_min', 0))}min)\n"
+        msg += f"  📉 Pressure reduction: {t.get('pressure_reduction')}%\n\n"
 
-    msg += f"Total patients to transfer: {sum(t['total_patients'] for t in transfers)}"
+    msg += f"Total patients recommended for transfer: {sum(t.get('total_patients', 0) for t in transfers)}"
     return msg
 
 
 def format_prediction_message(prediction: Dict) -> str:
-    """Format ML prediction into Telegram message."""
+    """Format individual patient ML prediction summary into Telegram markdown."""
     msg = "🧠 *AI Prediction Result*\n\n"
-    msg += f"🎯 Outcome: *{prediction['predicted_outcome']}*\n"
-    msg += f"⚠️ Risk Level: *{prediction['risk_level']}*\n"
-    msg += f"⏱️ Est. Resource Hours: {prediction['predicted_resource_hours']}\n\n"
+    msg += f"🎯 Outcome: *{prediction.get('predicted_outcome', 'Unknown')}*\n"
+    msg += f"⚠️ Risk Level: *{prediction.get('risk_level', 'Unknown')}*\n"
+    msg += f"⏱️ Est. Resource Hours: {prediction.get('predicted_resource_hours', 0)}\n\n"
 
+    probs = prediction.get("outcome_probabilities", {})
     msg += "📊 *Outcome Probabilities:*\n"
-    probs = prediction["outcome_probabilities"]
-    msg += f"  ✅ Discharged: {probs['discharged']}%\n"
-    msg += f"  🏥 Admitted: {probs['admitted']}%\n"
-    msg += f"  ⚠️ Critical: {probs['critical']}%\n"
-    msg += f"  💀 Deceased: {probs['deceased']}%\n"
+    msg += f"  ✅ Discharged: {probs.get('discharged', 0)}%\n"
+    msg += f"  🏥 Admitted: {probs.get('admitted', 0)}%\n"
+    msg += f"  ⚠️ Critical: {probs.get('critical', 0)}%\n"
+    msg += f"  💀 Deceased: {probs.get('deceased', 0)}%\n"
 
     return msg
 
 
 async def send_telegram_message(message: str, token: str = "", chat_id: str = "") -> Dict:
-    """Send a message via Telegram Bot API."""
-    token = token or BOT_TOKEN
-    chat_id = chat_id or CHAT_ID
+    """
+    Send an asynchronous message via Telegram Bot API using httpx.
+    Non-blocking async HTTP request.
+    """
+    token = token or settings.TELEGRAM_BOT_TOKEN
+    chat_id = chat_id or settings.TELEGRAM_CHAT_ID
 
     if not token or not chat_id:
         return {
@@ -112,124 +106,139 @@ async def send_telegram_message(message: str, token: str = "", chat_id: str = ""
             "message_preview": message[:200],
         }
 
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": message,
+        "parse_mode": "Markdown",
+    }
+
     try:
-        import urllib.request
-        import json
-
-        url = f"https://api.telegram.org/bot{token}/sendMessage"
-        data = json.dumps({
-            "chat_id": chat_id,
-            "text": message,
-            "parse_mode": "Markdown",
-        }).encode("utf-8")
-
-        req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            result = json.loads(resp.read().decode())
-            return {"success": True, "message_id": result.get("result", {}).get("message_id")}
-
-    except Exception as e:
-        logger.error(f"Telegram send failed: {e}")
-        return {"success": False, "error": str(e)}
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(url, json=payload)
+            if resp.status_code == 200:
+                data = resp.json()
+                return {"success": True, "message_id": data.get("result", {}).get("message_id")}
+            else:
+                return {
+                    "success": False,
+                    "status_code": resp.status_code,
+                    "error": f"Telegram API returned HTTP {resp.status_code}: {resp.text[:200]}",
+                }
+    except Exception as exc:
+        logger.error(f"Telegram dispatch failed: {exc}")
+        return {"success": False, "error": str(exc)}
 
 
 def generate_capacity_alerts(hospitals: List[Dict]) -> List[Dict]:
-    """Generate alerts based on current hospital capacity."""
+    """Generate threshold alert records from current facility capacity snapshot."""
     alerts = []
 
     for h in hospitals:
-        bed_pct = round(h["occupied_beds"] / max(h["total_beds"], 1) * 100, 1)
-        icu_pct = round(h["occupied_icu"] / max(h["icu_beds"], 1) * 100, 1)
-        vent_pct = round(h["ventilators_in_use"] / max(h["ventilators"], 1) * 100, 1)
+        total_beds = max(h.get("total_beds", 1), 1)
+        icu_beds = max(h.get("icu_beds", 1), 1)
+        vents = max(h.get("ventilators", 1), 1)
+
+        bed_pct = round((h.get("occupied_beds", 0) / total_beds) * 100.0, 1)
+        icu_pct = round((h.get("occupied_icu", 0) / icu_beds) * 100.0, 1)
+        vent_pct = round((h.get("ventilators_in_use", 0) / vents) * 100.0, 1)
+
+        name = h.get("name", "Unknown Facility")
 
         if bed_pct >= THRESHOLDS["bed_critical"]:
-            alerts.append({"level": "critical", "hospital": h["name"], "message": f"Bed occupancy at {bed_pct}%", "type": "bed"})
+            alerts.append({"level": "critical", "hospital": name, "message": f"Bed occupancy at {bed_pct}%", "type": "bed"})
         elif bed_pct >= THRESHOLDS["bed_warning"]:
-            alerts.append({"level": "warning", "hospital": h["name"], "message": f"Bed occupancy at {bed_pct}%", "type": "bed"})
+            alerts.append({"level": "warning", "hospital": name, "message": f"Bed occupancy at {bed_pct}%", "type": "bed"})
 
         if icu_pct >= THRESHOLDS["icu_critical"]:
-            alerts.append({"level": "critical", "hospital": h["name"], "message": f"ICU occupancy at {icu_pct}%", "type": "icu"})
+            alerts.append({"level": "critical", "hospital": name, "message": f"ICU occupancy at {icu_pct}%", "type": "icu"})
         elif icu_pct >= THRESHOLDS["icu_warning"]:
-            alerts.append({"level": "warning", "hospital": h["name"], "message": f"ICU occupancy at {icu_pct}%", "type": "icu"})
+            alerts.append({"level": "warning", "hospital": name, "message": f"ICU occupancy at {icu_pct}%", "type": "icu"})
 
         if vent_pct >= THRESHOLDS["ventilator_critical"]:
-            alerts.append({"level": "critical", "hospital": h["name"], "message": f"Ventilator usage at {vent_pct}%", "type": "ventilator"})
+            alerts.append({"level": "critical", "hospital": name, "message": f"Ventilator usage at {vent_pct}%", "type": "ventilator"})
 
     return alerts
 
 
 def get_bot_status() -> Dict:
-    """Get the current configuration status of the Telegram bot."""
+    """Get Telegram integration configuration status."""
     return {
-        "configured": bool(BOT_TOKEN and CHAT_ID),
-        "bot_token_set": bool(BOT_TOKEN),
-        "chat_id_set": bool(CHAT_ID),
+        "configured": bool(settings.TELEGRAM_BOT_TOKEN and settings.TELEGRAM_CHAT_ID),
+        "bot_token_set": bool(settings.TELEGRAM_BOT_TOKEN),
+        "chat_id_set": bool(settings.TELEGRAM_CHAT_ID),
         "thresholds": THRESHOLDS,
         "instructions": {
             "step_1": "Create a bot via @BotFather on Telegram",
             "step_2": "Set TELEGRAM_BOT_TOKEN environment variable",
-            "step_3": "Get your chat ID via @userinfobot",
+            "step_3": "Obtain recipient chat ID via @userinfobot",
             "step_4": "Set TELEGRAM_CHAT_ID environment variable",
         },
     }
 
+
 async def autonomous_monitor():
-    """Background worker that continuously monitors network health."""
-    logger.info("Starting Telegram autonomous monitoring loop...")
+    """Background task monitoring regional capacity and issuing alerts on threshold breaches."""
+    logger.info("Initializing Telegram autonomous monitoring task...")
+    cooldown_seconds = settings.TELEGRAM_COOLDOWN_MINUTES * 60
+
     while True:
         try:
-            # Skip if not configured
-            if not BOT_TOKEN or not CHAT_ID:
+            # If not configured, sleep and recheck
+            if not settings.TELEGRAM_BOT_TOKEN or not settings.TELEGRAM_CHAT_ID:
                 await asyncio.sleep(60)
                 continue
 
-            # Fetch current live data
             hospitals = generate_hospitals(8)
-            now = datetime.now()
+            now = datetime.now(timezone.utc)
 
-            # 1. 95% Rule: Check for critical capacity requiring autonomous redistribution
-            redistribution_needed = False
+            # 1. 95% Rule: Check for severe critical threshold requiring urgent network redistribution
             breached_hospitals = []
             for h in hospitals:
-                occupancy = h["occupied_beds"] / max(h["total_beds"], 1)
+                occupancy = h.get("occupied_beds", 0) / max(h.get("total_beds", 1), 1)
                 if occupancy >= 0.95:
-                    alert_key = f"redistribution_{h['name']}"
+                    alert_key = f"redistribution_{h.get('name')}"
                     last_alert = ALERT_HISTORY.get(alert_key)
-                    if not last_alert or (now - last_alert).total_seconds() > COOLDOWN_MINUTES * 60:
-                        redistribution_needed = True
-                        breached_hospitals.append(h['name'])
+                    if not last_alert or (now - last_alert).total_seconds() > cooldown_seconds:
+                        breached_hospitals.append(h.get("name", "Unknown"))
                         ALERT_HISTORY[alert_key] = now
 
-            if redistribution_needed:
+            if breached_hospitals:
                 result = recommend_transfers(hospitals)
-                msg = f"🚨 *CRITICAL ALERT: 95% THRESHOLD BREACHED*\n"
-                msg += f"Hospitals at >95% capacity: {', '.join(breached_hospitals)}\n"
-                msg += f"Autonomous network redistribution initiated to protect resource buffers.\n\n"
-                msg += format_transfer_message(result["recommended_transfers"])
+                msg = "🚨 *CRITICAL SURGE ALERT: 95% THRESHOLD BREACHED*\n"
+                msg += f"Facilities at >=95% capacity: {', '.join(breached_hospitals)}\n"
+                msg += "Autonomous network redistribution recommended to prevent critical overflow.\n\n"
+                msg += format_transfer_message(result.get("recommended_transfers", []))
                 await send_telegram_message(msg)
-            
+
             # 2. Standard Capacity Alerts
             alerts = generate_capacity_alerts(hospitals)
             new_alerts = []
             for a in alerts:
-                alert_key = f"{a['hospital']}_{a['type']}_{a['level']}"
+                alert_key = f"{a.get('hospital')}_{a.get('type')}_{a.get('level')}"
                 last_alert = ALERT_HISTORY.get(alert_key)
-                if not last_alert or (now - last_alert).total_seconds() > COOLDOWN_MINUTES * 60:
+                if not last_alert or (now - last_alert).total_seconds() > cooldown_seconds:
                     new_alerts.append(a)
                     ALERT_HISTORY[alert_key] = now
-            
+
             if new_alerts:
+                total_beds = sum(h.get("total_beds", 0) for h in hospitals)
+                total_icu = sum(h.get("icu_beds", 0) for h in hospitals)
+                total_vents = sum(h.get("ventilators", 0) for h in hospitals)
+
                 summary = {
                     "total_hospitals": len(hospitals),
-                    "bed_occupancy": round(sum(h["occupied_beds"] for h in hospitals) / max(sum(h["total_beds"] for h in hospitals), 1) * 100, 1),
-                    "icu_occupancy": round(sum(h["occupied_icu"] for h in hospitals) / max(sum(h["icu_beds"] for h in hospitals), 1) * 100, 1),
-                    "ventilator_usage": round(sum(h["ventilators_in_use"] for h in hospitals) / max(sum(h["ventilators"] for h in hospitals), 1) * 100, 1),
+                    "bed_occupancy": round(sum(h.get("occupied_beds", 0) for h in hospitals) / max(total_beds, 1) * 100.0, 1),
+                    "icu_occupancy": round(sum(h.get("occupied_icu", 0) for h in hospitals) / max(total_icu, 1) * 100.0, 1),
+                    "ventilator_usage": round(sum(h.get("ventilators_in_use", 0) for h in hospitals) / max(total_vents, 1) * 100.0, 1),
                 }
                 msg = format_alert_message(new_alerts, summary)
                 await send_telegram_message(msg)
 
-        except Exception as e:
-            logger.error(f"Autonomous monitor error: {e}")
-        
-        # Check every 60 seconds
+        except asyncio.CancelledError:
+            logger.info("Autonomous monitoring task cancelled.")
+            break
+        except Exception as exc:
+            logger.error(f"Autonomous monitoring iteration error: {exc}")
+
         await asyncio.sleep(60)

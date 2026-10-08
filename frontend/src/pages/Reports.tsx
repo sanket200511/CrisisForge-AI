@@ -140,7 +140,16 @@ export default function Reports() {
                     <h3><TrendingUp size={18} style={{ color: '#8b5cf6' }} /> Bed Distribution by Region</h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <PieChart>
-                            <Pie data={pieData} cx="50%" cy="50%" outerRadius={100} innerRadius={55} dataKey="value" label={((props: any) => `${props.name || ''} ${((props.percent ?? 0) * 100).toFixed(0)}%`) as any} labelLine={false}>
+                            <Pie
+                                data={pieData}
+                                cx="50%"
+                                cy="50%"
+                                outerRadius={100}
+                                innerRadius={55}
+                                dataKey="value"
+                                label={({ name, percent }: { name?: string; percent?: number }) => `${name || ''} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                                labelLine={false}
+                            >
                                 {pieData.map((_, i) => (
                                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                                 ))}

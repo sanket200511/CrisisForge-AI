@@ -62,6 +62,8 @@ function StatBadge({ icon: Icon, label, value, color }: { icon: typeof Activity,
 //  MAIN MAP PAGE COMPONENT
 // ═══════════════════════════════════════════════════
 
+const NAGPUR_CENTER: L.LatLngExpression = [21.1458, 79.0882];
+
 export default function HospitalMap() {
     const { theme } = useTheme();
     const [hospitals, setHospitals] = useState<Hospital[]>([]);
@@ -69,8 +71,6 @@ export default function HospitalMap() {
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapInstanceRef = useRef<L.Map | null>(null);
     const markersRef = useRef<L.CircleMarker[]>([]);
-
-    const NAGPUR_CENTER: L.LatLngExpression = [21.1458, 79.0882];
 
     const fetchData = async () => {
         try {
@@ -100,12 +100,12 @@ export default function HospitalMap() {
             zoomControl: false,
         });
 
-        const tileUrl = theme === 'light'
-            ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
-            : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+        // Free, open OpenStreetMap tile layer (no API key required)
+        const tileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
         L.tileLayer(tileUrl, {
-            attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
         }).addTo(map);
 
         L.control.zoom({ position: 'bottomright' }).addTo(map);
@@ -234,7 +234,11 @@ export default function HospitalMap() {
                 border: '1px solid rgba(6, 182, 212, 0.2)',
                 boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
             }}>
-                <div ref={mapContainerRef} style={{ height: '100%', width: '100%' }} />
+                <div
+                    ref={mapContainerRef}
+                    className={theme === 'dark' ? 'map-dark-tiles' : ''}
+                    style={{ height: '100%', width: '100%' }}
+                />
 
                 {/* Legend overlay */}
                 <div style={{

@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRISISFORGE-AI — Project Showcase & Architecture Blueprint</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ─── RESET & CSS VARIABLES ─── */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-page: #090d16;
+      --bg-sheet: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #64748b;
+      --border: #cbd5e1;
+      --border-light: #e2e8f0;
+      --primary: #0284c7;
+      --primary-dark: #0369a1;
+      --primary-soft: #f0f9ff;
+      --secondary: #0d9488;
+      --accent: #2563eb;
+      --danger: #dc2626;
+      --danger-soft: #fef2f2;
+      --warning: #d97706;
+      --warning-soft: #fffbeb;
+      --success: #16a34a;
+      --success-soft: #f0fdf4;
+      --navy: #0f172a;
+      --navy-card: #f8fafc;
+      --tag-bg: #f1f5f9;
+      --tag-border: #cbd5e1;
+      --radius-sm: 4px;
+      --radius-md: 6px;
+      --radius-lg: 8px;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background: var(--bg-page);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 12px;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── TOP ACTION BAR (SCREEN ONLY) ─── */
+    .top-bar {
+      width: 210mm;
+      max-width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      color: #94a3b8;
+      font-size: 0.85rem;
+    }
+
+    .top-bar .btn-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    .action-btn {
+      background: #1e293b;
+      color: #f1f5f9;
+      border: 1px solid #334155;
+      padding: 7px 16px;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .action-btn:hover {
+      background: #0284c7;
+      border-color: #0284c7;
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    .action-btn.primary {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: #ffffff;
+      box-shadow: 0 2px 10px rgba(2, 132, 199, 0.4);
+    }
+
+    .action-btn.primary:hover {
+      background: #0369a1;
+    }
+
+    /* ─── A4 CONTAINER ─── */
+    .a4-sheet {
+      width: 210mm;
+      height: 297mm;
+      max-height: 297mm;
+      background: var(--bg-sheet);
+      padding: 7mm 9mm 6mm 9mm;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ─── HEADER ─── */
+    .header {
+      border-bottom: 1.5px solid var(--border-light);
+      padding-bottom: 5px;
+      margin-bottom: 5px;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .project-title {
+      font-size: 20pt;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: #0f172a;
+      line-height: 1;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    .badge-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      font-size: 6.8pt;
+      font-weight: 700;
+      border-radius: 999px;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+
+    .badge-proto {
+      background: #e0f2fe;
+      color: #0369a1;
+      border: 1px solid #bae6fd;
+    }
+
+    .badge-scope {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+    }
+
+    .subtitle {
+      font-size: 9pt;
+      font-weight: 700;
+      color: #0284c7;
+      margin-top: 2px;
+      letter-spacing: 0.1px;
+    }
+
+    .problem-line {
+      font-size: 7.6pt;
+      color: #334155;
+      margin-top: 2px;
+      line-height: 1.25;
+      background: #f8fafc;
+      padding: 3px 6px;
+      border-left: 3px solid #0284c7;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    }
+
+    /* ─── SECTION STYLING ─── */
+    .section-title {
+      font-size: 7.2pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 3px;
+    }
+
+    .section-title::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: #e2e8f0;
+    }
+
+    .sec-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #0f172a;
+      color: #ffffff;
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      font-size: 6pt;
+      font-weight: 700;
+    }
+
+    /* ─── UPPER GRID: PROBLEM (LEFT) & SOLUTION PIPELINE (RIGHT) ─── */
+    .upper-grid {
+      display: grid;
+      grid-template-columns: 58mm 1fr;
+      gap: 7mm;
+      margin-bottom: 5px;
+    }
+
+    /* SECTION 1: THE PROBLEM */
+    .problem-flow {
+      background: #fffbfa;
+      border: 1px solid #fecaca;
+      border-radius: var(--radius-md);
+      padding: 5px 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .flow-step {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 6.8pt;
+      font-weight: 600;
+      color: #7f1d1d;
+      background: #ffffff;
+      padding: 2.5px 5px;
+      border-radius: 3px;
+      border: 1px solid #fee2e2;
+    }
+
+    .flow-step .step-icon {
+      font-size: 7.5pt;
+      width: 13px;
+      text-align: center;
+    }
+
+    .flow-arrow {
+      text-align: center;
+      font-size: 6.5pt;
+      color: #dc2626;
+      line-height: 1;
+      font-weight: bold;
+    }
+
+    /* SECTION 2: THE SOLUTION (CENTERPIECE PIPELINE) */
+    .pipeline-container {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: var(--radius-md);
+      padding: 5px 6px;
+    }
+
+    .pipeline-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 4px;
+      position: relative;
+    }
+
+    .pipe-card {
+      background: #ffffff;
+      border: 1.2px solid #cbd5e1;
+      border-radius: var(--radius-sm);
+      padding: 4px 4px;
+      text-align: center;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .pipe-card:hover, .pipe-card.active {
+      border-color: #0284c7;
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .pipe-step-tag {
+      font-size: 5.5pt;
+      font-weight: 800;
+      color: #0284c7;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .pipe-card h4 {
+      font-size: 6.8pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 1px 0 2px 0;
+      line-height: 1.15;
+    }
+
+    .pipe-card p {
+      font-size: 5.8pt;
+      color: #475569;
+      line-height: 1.15;
+    }
+
+    .pipe-connector {
+      position: absolute;
+      top: 50%;
+      right: -4px;
+      transform: translate(50%, -50%);
+      font-size: 7pt;
+      color: #0284c7;
+      font-weight: bold;
+      z-index: 2;
+    }
+
+    /* ─── MIDDLE GRID: 8-HOSPITAL NETWORK (LEFT) & 4 CORE ENGINES (RIGHT) ─── */
+    .middle-grid {
+      display: grid;
+      grid-template-columns: 66mm 1fr;
+      gap: 7mm;
+      margin-bottom: 5px;
+    }
+
+    /* SECTION 3: 8-HOSPITAL NETWORK SCHEMATIC */
+    .network-box {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: var(--radius-md);
+      padding: 5px 6px;
+    }
+
+    .network-subtitle {
+      font-size: 6pt;
+      color: #64748b;
+      margin-bottom: 4px;
+      font-style: italic;
+    }
+
+    .schematic-diagram {
+      display: flex;
+      flex-direction: column;
+      gap: 3.5px;
+    }
+
+    .network-node-row {
+      display: grid;
+      grid-template-columns: 1fr 18px 1fr;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .node-card {
+      padding: 3px 5px;
+      border-radius: var(--radius-sm);
+      font-size: 6pt;
+      border: 1px solid #cbd5e1;
+    }
+
+    .node-card.sender {
+      background: #fef2f2;
+      border-color: #fca5a5;
+      color: #991b1b;
+    }
+
+    .node-card.receiver {
+      background: #f0fdf4;
+      border-color: #86efac;
+      color: #166534;
+    }
+
+    .node-title {
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      font-size: 6.2pt;
+    }
+
+    .node-stats {
+      font-size: 5.5pt;
+      color: #475569;
+      margin-top: 1px;
+    }
+
+    .transfer-arrow-cell {
+      text-align: center;
+      font-size: 7pt;
+      color: #dc2626;
+      font-weight: 800;
+    }
+
+    .network-legend-bar {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 4px;
+      padding-top: 3px;
+      border-top: 1px dashed #e2e8f0;
+      font-size: 5.5pt;
+      color: #64748b;
+    }
+
+    /* SECTION 4: INTELLIGENCE / CORE ENGINES */
+    .engines-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+    }
+
+    .engine-card {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: var(--radius-sm);
+      padding: 4px 6px;
+      border-left: 3px solid #0284c7;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .engine-card:hover {
+      border-color: #0284c7;
+      background: #f8fafc;
+      transform: translateY(-1px);
+    }
+
+    .engine-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1px;
+    }
+
+    .engine-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 6pt;
+      font-weight: 700;
+      color: #0284c7;
+    }
+
+    .engine-title {
+      font-size: 7.2pt;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .engine-bullets {
+      list-style: none;
+      font-size: 6pt;
+      color: #334155;
+      line-height: 1.25;
+      margin-top: 2px;
+    }
+
+    .engine-bullets li {
+      position: relative;
+      padding-left: 7px;
+    }
+
+    .engine-bullets li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: #0284c7;
+      font-weight: bold;
+    }
+
+    /* ─── LOWER GRID: ARCHITECTURE (LEFT) & HIGHLIGHTS/STACK (RIGHT) ─── */
+    .lower-grid {
+      display: grid;
+      grid-template-columns: 104mm 1fr;
+      gap: 7mm;
+      margin-bottom: 5px;
+    }
+
+    /* SECTION 5: ARCHITECTURE */
+    .arch-box {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: var(--radius-md);
+      padding: 4px 6px;
+    }
+
+    .arch-flow {
+      display: flex;
+      flex-direction: column;
+      gap: 2.5px;
+      font-size: 6pt;
+    }
+
+    .arch-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 3px;
+      padding: 2.5px 5px;
+    }
+
+    .arch-node {
+      font-weight: 700;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+
+    .arch-node:hover {
+      color: #0284c7;
+    }
+
+    .arch-desc {
+      font-size: 5.5pt;
+      color: #64748b;
+    }
+
+    .arch-sub-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 3px;
+      margin: 1px 0;
+    }
+
+    .arch-pill {
+      background: #e0f2fe;
+      border: 1px solid #bae6fd;
+      color: #0369a1;
+      font-size: 5.5pt;
+      font-weight: 700;
+      text-align: center;
+      padding: 2px 2px;
+      border-radius: 2px;
+    }
+
+    .arch-externals {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      margin-top: 1px;
+    }
+
+    .arch-ext-card {
+      background: #f1f5f9;
+      border: 1px dashed #cbd5e1;
+      padding: 2px 4px;
+      border-radius: 2px;
+      font-size: 5.5pt;
+      color: #334155;
+    }
+
+    /* SECTION 6 & 7: TECH STACK & ENGINEERING HIGHLIGHTS */
+    .highlights-box {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: var(--radius-md);
+      padding: 4px 6px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .highlights-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2.5px 4px;
+      margin-bottom: 4px;
+    }
+
+    .hl-item {
+      font-size: 5.8pt;
+      font-weight: 600;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .hl-item span.chk {
+      color: #16a34a;
+      font-weight: 800;
+      font-size: 6.5pt;
+    }
+
+    .tech-tags-container {
+      border-top: 1px solid #e2e8f0;
+      padding-top: 3px;
+    }
+
+    .tech-tags-label {
+      font-size: 5.6pt;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 2px;
+    }
+
+    .tech-tags-flex {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px;
+    }
+
+    .tech-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 5.2pt;
+      font-weight: 600;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+
+    /* ─── BOTTOM FOOTER GRID: LIMITATIONS & EXPLORE (QR CODES) ─── */
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 122mm 1fr;
+      gap: 6mm;
+      padding-top: 4px;
+      border-top: 1.5px solid var(--border-light);
+    }
+
+    .limitations-box {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .limitation-card {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: var(--radius-sm);
+      padding: 3px 5px;
+      margin-bottom: 3px;
+    }
+
+    .limitation-card p {
+      font-size: 5.7pt;
+      color: #92400e;
+      line-height: 1.25;
+    }
+
+    .limitation-card p strong {
+      color: #78350f;
+    }
+
+    .my-focus-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: var(--radius-sm);
+      padding: 3px 5px;
+    }
+
+    .my-focus-title {
+      font-size: 5.8pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #0f172a;
+      letter-spacing: 0.4px;
+      margin-bottom: 1px;
+    }
+
+    .focus-tags {
+      font-size: 5.8pt;
+      font-weight: 600;
+      color: #0369a1;
+      line-height: 1.2;
+    }
+
+    /* SECTION 9: EXPLORE (QR CODES) */
+    .explore-box {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: var(--radius-sm);
+      padding: 3px 4px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .explore-header {
+      text-align: center;
+      font-size: 6pt;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .qr-pair {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .qr-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .qr-svg-wrapper {
+      width: 48px;
+      height: 48px;
+      border: 1px solid #0f172a;
+      border-radius: 2px;
+      padding: 1px;
+      background: #ffffff;
+    }
+
+    .qr-label {
+      font-size: 5.5pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin-top: 1px;
+    }
+
+    .qr-url {
+      font-size: 4.6pt;
+      color: #0284c7;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ─── INTERACTIVE MODAL / DRAWER (SCREEN ONLY) ─── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-box {
+      background: #ffffff;
+      width: 440px;
+      max-width: 90vw;
+      border-radius: var(--radius-lg);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+      padding: 20px;
+      border: 1px solid #cbd5e1;
+      position: relative;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: #f1f5f9;
+      border: none;
+      font-size: 1.1rem;
+      font-weight: bold;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #475569;
+    }
+
+    .modal-close:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    .modal-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 6px;
+    }
+
+    .modal-desc {
+      font-size: 0.85rem;
+      color: #334155;
+      line-height: 1.45;
+      margin-bottom: 12px;
+    }
+
+    .modal-code {
+      background: #0f172a;
+      color: #38bdf8;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      padding: 10px;
+      border-radius: var(--radius-md);
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+
+    /* ─── PRINT SPECIFICATIONS (STRICT EXACT A4 ONE-PAGE) ─── */
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 5mm 7mm 4mm 7mm;
+      }
+
+      body {
+        background: #ffffff !important;
+        padding: 0 !important;
+        color: #0f172a !important;
+        min-height: auto !important;
+      }
+
+      .no-print, .top-bar, .modal-overlay {
+        display: none !important;
+      }
+
+      .a4-sheet {
+        width: 100% !important;
+        height: 100% !important;
+        max-height: 287mm !important;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        page-break-after: avoid !important;
+        page-break-inside: avoid !important;
+      }
+
+      /* Force background colors and crisp borders in print */
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      .pipe-card, .engine-card, .node-card, .arch-box, .network-box {
+        box-shadow: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Screen-only top action bar -->
+  <div class="top-bar no-print">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #22c55e;"></span>
+      <span>A4 Technical Blueprint • Print or Interactive Digital Mode</span>
+    </div>
+    <div class="btn-group">
+      <a href="https://github.com/sanket200511/CrisisForge-AI" target="_blank" class="action-btn">
+        <span>GitHub Repo</span>
+      </a>
+      <a href="https://crisisforge-ai.vercel.app/" target="_blank" class="action-btn">
+        <span>Live Web Demo</span>
+      </a>
+      <button onclick="window.print()" class="action-btn primary">
+        <span>🖨️ Print / Save PDF (A4)</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- A4 Single-Page Sheet -->
+  <main class="a4-sheet" id="print-sheet">
+
+    <!-- HEADER BLOCK -->
+    <header class="header">
+      <div class="header-top">
+        <div>
+          <div class="title-group">
+            <h1 class="project-title">CRISISFORGE-AI</h1>
+            <span class="badge-pill badge-proto">Decision-Support Prototype</span>
+            <span class="badge-pill badge-scope">Synthetic Data</span>
+          </div>
+          <div class="subtitle">Healthcare Crisis Resource Intelligence &amp; Decision Support</div>
+        </div>
+        <div style="text-align: right; font-size: 6.2pt; color: #64748b;">
+          <strong>Nagpur 8-Hospital Network</strong><br>
+          B.Tech CSE Capstone Showcase
+        </div>
+      </div>
+      <div class="problem-line">
+        <strong>Core Mission:</strong> "Helping hospital networks anticipate resource pressure, compare allocation strategies, and coordinate patient transfers during crisis surges."
+      </div>
+    </header>
+
+    <!-- UPPER ROW: SECTION 1 (PROBLEM) + SECTION 2 (SOLUTION PIPELINE) -->
+    <div class="upper-grid">
+      <!-- SECTION 1: THE PROBLEM -->
+      <section>
+        <div class="section-title"><span class="sec-num">1</span> The Problem</div>
+        <div class="problem-flow">
+          <div class="flow-step">
+            <span class="step-icon">🚨</span>
+            <span><strong>Crisis Surge:</strong> Epidemic / trauma spike</span>
+          </div>
+          <div class="flow-arrow">▼</div>
+          <div class="flow-step">
+            <span class="step-icon">📈</span>
+            <span><strong>Surge Inflow:</strong> Acute patient demand spikes</span>
+          </div>
+          <div class="flow-arrow">▼</div>
+          <div class="flow-step">
+            <span class="step-icon">🏥</span>
+            <span><strong>Hospital Overload:</strong> ICU &amp; vents exhausted</span>
+          </div>
+          <div class="flow-arrow">▼</div>
+          <div class="flow-step">
+            <span class="step-icon">🏢</span>
+            <span><strong>Network Silos:</strong> Nearby facilities have capacity</span>
+          </div>
+          <div class="flow-arrow">▼</div>
+          <div class="flow-step">
+            <span class="step-icon">⚠️</span>
+            <span><strong>Decision Failure:</strong> Delayed, uncoordinated triage</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 2: THE SOLUTION (CENTERPIECE PIPELINE) -->
+      <section>
+        <div class="section-title"><span class="sec-num">2</span> The Solution: CrisisForge-AI Pipeline</div>
+        <div class="pipeline-container">
+          <div class="pipeline-grid">
+            
+            <div class="pipe-card" onclick="openDetails('forecast')">
+              <span class="pipe-step-tag">Step 01</span>
+              <h4>Forecasting</h4>
+              <p>Trend + Seasonality + 200 Monte Carlo paths</p>
+              <span class="pipe-connector">▶</span>
+            </div>
+
+            <div class="pipe-card" onclick="openDetails('allocation')">
+              <span class="pipe-step-tag">Step 02</span>
+              <h4>Simulation</h4>
+              <p>FCFS, Severity, Equity &amp; Acuity-to-Cost heuristic</p>
+              <span class="pipe-connector">▶</span>
+            </div>
+
+            <div class="pipe-card" onclick="openDetails('strain')">
+              <span class="pipe-step-tag">Step 03</span>
+              <h4>Strain Scoring</h4>
+              <p>Composite index: Beds, ICU, Vents &amp; Staff</p>
+              <span class="pipe-connector">▶</span>
+            </div>
+
+            <div class="pipe-card" onclick="openDetails('transfer')">
+              <span class="pipe-step-tag">Step 04</span>
+              <h4>Transfer Engine</h4>
+              <p>75% trigger threshold &amp; 25% surge buffer</p>
+              <span class="pipe-connector">▶</span>
+            </div>
+
+            <div class="pipe-card" onclick="openDetails('decision')">
+              <span class="pipe-step-tag">Step 05</span>
+              <h4>Decision Support</h4>
+              <p>Patient triage ML + Watchdog Telegram alerts</p>
+            </div>
+
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- MIDDLE ROW: SECTION 3 (8-HOSPITAL NETWORK) + SECTION 4 (CORE ENGINES) -->
+    <div class="middle-grid">
+      <!-- SECTION 3: 8-HOSPITAL NETWORK SCHEMATIC -->
+      <section>
+        <div class="section-title"><span class="sec-num">3</span> 8-Hospital Network Prototype (Nagpur)</div>
+        <div class="network-box">
+          <div class="network-subtitle">Regional load balancing across 1,940 beds, 330 ICU units, and 185 ventilators:</div>
+          <div class="schematic-diagram">
+            
+            <div class="network-node-row">
+              <div class="node-card sender">
+                <div class="node-title"><span>AIIMS Nagpur</span> <span style="font-weight:800;">91.5%</span></div>
+                <div class="node-stats">450 Beds • 75 ICU • Overloaded</div>
+              </div>
+              <div class="transfer-arrow-cell">➔</div>
+              <div class="node-card receiver">
+                <div class="node-title"><span>Kingsway Hospital</span> <span style="font-weight:800;">56.5%</span></div>
+                <div class="node-stats">300 Beds • 50 ICU • Headroom +120</div>
+              </div>
+            </div>
+
+            <div class="network-node-row">
+              <div class="node-card sender">
+                <div class="node-title"><span>Wockhardt Sadar</span> <span style="font-weight:800;">88.0%</span></div>
+                <div class="node-stats">250 Beds • 45 ICU • Overloaded</div>
+              </div>
+              <div class="transfer-arrow-cell">➔</div>
+              <div class="node-card receiver">
+                <div class="node-title"><span>Alexis Manish Ngr</span> <span style="font-weight:800;">48.0%</span></div>
+                <div class="node-stats">220 Beds • 40 ICU • Headroom +114</div>
+              </div>
+            </div>
+
+            <div class="network-node-row">
+              <div class="node-card" style="background:#f8fafc;">
+                <div class="node-title"><span>Ojas &amp; Orange City</span> <span>68.0%</span></div>
+                <div class="node-stats">380 Beds • 65 ICU • Monitored</div>
+              </div>
+              <div class="transfer-arrow-cell" style="color:#0284c7;">⇄</div>
+              <div class="node-card" style="background:#f8fafc;">
+                <div class="node-title"><span>Aureus &amp; Care</span> <span>54.0%</span></div>
+                <div class="node-stats">340 Beds • 55 ICU • Available</div>
+              </div>
+            </div>
+
+          </div>
+          <div class="network-legend-bar">
+            <span>🔴 Sender (&gt;75% Strain)</span>
+            <span>🟢 Receiver (&lt;75% Strain)</span>
+            <span>🛡️ Preserves 25% Surge Buffer</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 4: INTELLIGENCE / CORE ENGINES -->
+      <section>
+        <div class="section-title"><span class="sec-num">4</span> Core Intelligence Engines</div>
+        <div class="engines-grid">
+          
+          <div class="engine-card" onclick="openDetails('forecast')">
+            <div class="engine-header">
+              <span class="engine-title">01 — Inflow Forecast</span>
+              <span class="engine-num">MC-P10/90</span>
+            </div>
+            <ul class="engine-bullets">
+              <li>Trend + weekly harmonic sine (5 sin(2 pi t / 7))</li>
+              <li>Epidemic S-curve &amp; trauma impulse surge dynamics</li>
+              <li>200 Monte Carlo paths $	o$ P10–P90 uncertainty</li>
+            </ul>
+          </div>
+
+          <div class="engine-card" onclick="openDetails('allocation')">
+            <div class="engine-header">
+              <span class="engine-title">02 — Resource Allocation</span>
+              <span class="engine-num">HEURISTIC</span>
+            </div>
+            <ul class="engine-bullets">
+              <li>FCFS arrival queue vs. Clinical Severity sorting</li>
+              <li>Demographic Equity quotas (Pediatric/Adult/Senior)</li>
+              <li>Greedy Acuity-to-Cost heuristic (Acuity Gain / Cost)</li>
+            </ul>
+          </div>
+
+          <div class="engine-card" onclick="openDetails('ml')">
+            <div class="engine-header">
+              <span class="engine-title">03 — ML Patient Triage</span>
+              <span class="engine-num">GBM-SENS</span>
+            </div>
+            <ul class="engine-bullets">
+              <li>GradientBoostingClassifier $	o$ 4 triage classes</li>
+              <li>GradientBoostingRegressor $	o$ stay duration hours</li>
+              <li>Empirical baseline perturbation attribution</li>
+            </ul>
+          </div>
+
+          <div class="engine-card" onclick="openDetails('transfer')">
+            <div class="engine-header">
+              <span class="engine-title">04 — Transfer Balancing</span>
+              <span class="engine-num">MULTI-RES</span>
+            </div>
+            <ul class="engine-bullets">
+              <li>Composite Strain S_h (Beds 25%, ICU 35%, Vent 25%, Staff 15%)</li>
+              <li>Triggered at S_h &gt; 75%; preserves 25% surge buffer</li>
+              <li>Distance-penalized matching: Headroom minus 0.5 * dist</li>
+            </ul>
+          </div>
+
+        </div>
+      </section>
+    </div>
+
+    <!-- LOWER ROW: SECTION 5 (ARCHITECTURE) + SECTIONS 6 & 7 (HIGHLIGHTS & STACK) -->
+    <div class="lower-grid">
+      <!-- SECTION 5: ARCHITECTURE -->
+      <section>
+        <div class="section-title"><span class="sec-num">5</span> Architecture &amp; Data Flow</div>
+        <div class="arch-box">
+          <div class="arch-flow">
+            
+            <div class="arch-row" onclick="openDetails('frontend')">
+              <span class="arch-node">💻 React 19 + TypeScript (Vite 7)</span>
+              <span class="arch-desc">Leaflet Maps • Recharts • Framer Motion</span>
+            </div>
+
+            <div style="text-align:center; font-size:5.5pt; color:#0284c7; line-height:1;">▼ REST API (JSON / Bearer Token)</div>
+
+            <div class="arch-row" onclick="openDetails('backend')">
+              <span class="arch-node">⚡ FastAPI Backend Server</span>
+              <span class="arch-desc">Pydantic v2 Invariants • Async Lifespan</span>
+            </div>
+
+            <div class="arch-sub-grid">
+              <div class="arch-pill">Forecast Engine</div>
+              <div class="arch-pill">Allocation Engine</div>
+              <div class="arch-pill">Transfer Engine</div>
+              <div class="arch-pill">ML Model (GBM)</div>
+            </div>
+
+            <div style="text-align:center; font-size:5.5pt; color:#0284c7; line-height:1;">▼ SQLAlchemy 2.0 ORM (Dialect-Agnostic)</div>
+
+            <div class="arch-row" onclick="openDetails('database')">
+              <span class="arch-node">🗄️ Database Layer</span>
+              <span class="arch-desc">SQLite (Dev) / PostgreSQL (Prod) • Audit Logs</span>
+            </div>
+
+            <div class="arch-externals">
+              <div class="arch-ext-card">
+                <strong>🔐 Firebase Auth:</strong> Client OAuth &amp; Bearer propagation
+              </div>
+              <div class="arch-ext-card">
+                <strong>📱 Telegram Watchdog:</strong> Async alert on &gt;= 95% bed overload
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 6 & 7: ENGINEERING HIGHLIGHTS & TECH STACK -->
+      <section>
+        <div class="section-title"><span class="sec-num">6 &amp; 7</span> Highlights &amp; Stack</div>
+        <div class="highlights-box">
+          
+          <div class="highlights-list">
+            <div class="hl-item"><span class="chk">✓</span> 38 automated pytest tests</div>
+            <div class="hl-item"><span class="chk">✓</span> Pydantic healthcare invariants</div>
+            <div class="hl-item"><span class="chk">✓</span> Dual-mode Bearer Auth + RBAC</div>
+            <div class="hl-item"><span class="chk">✓</span> Sanitized clinical audit trail</div>
+            <div class="hl-item"><span class="chk">✓</span> Async Telegram watchdog (&gt;= 95%)</div>
+            <div class="hl-item"><span class="chk">✓</span> SQLite to PostgreSQL data layer</div>
+          </div>
+
+          <div class="tech-tags-container">
+            <div class="tech-tags-label">Verified Technology Stack</div>
+            <div class="tech-tags-flex">
+              <span class="tech-tag">Python 3.11+</span>
+              <span class="tech-tag">FastAPI</span>
+              <span class="tech-tag">React 19</span>
+              <span class="tech-tag">TypeScript</span>
+              <span class="tech-tag">SQLAlchemy</span>
+              <span class="tech-tag">PostgreSQL</span>
+              <span class="tech-tag">scikit-learn</span>
+              <span class="tech-tag">NumPy</span>
+              <span class="tech-tag">Firebase Auth</span>
+              <span class="tech-tag">Leaflet / OSM</span>
+              <span class="tech-tag">Pytest</span>
+              <span class="tech-tag">Git</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+    </div>
+
+    <!-- FOOTER ROW: SECTION 8 (LIMITATIONS) + SECTION 10 (ROLE) + SECTION 9 (QR CODES) -->
+    <footer class="footer-grid">
+      <!-- SECTION 8: LIMITATION & SECTION 10: MY ROLE -->
+      <div class="limitations-box">
+        <div class="limitation-card">
+          <p>
+            <strong>⚠️ Engineering Scope &amp; Limitations:</strong> Decision-support prototype evaluated on 100% synthetic data — not an autonomous diagnostic system.
+            <em>Production roadmap:</em> HL7 FHIR R4 clinical EHR ingestion, certified TreeSHAP, road-network routing (OSRM), and distributed Celery tasks.
+          </p>
+        </div>
+        <div class="my-focus-box">
+          <div class="my-focus-title">My Engineering Focus</div>
+          <div class="focus-tags">
+            Backend APIs • System Architecture • Inflow Forecasting • Triage Allocation Simulation • ML Integration • Invariant Validation &amp; Pytest
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 9: EXPLORE THE PROJECT (LARGE SCANNABLE QR CODES) -->
+      <div class="explore-box">
+        <div class="explore-header">Scan to Explore Project</div>
+        <div class="qr-pair">
+          
+          <a href="https://github.com/sanket200511/CrisisForge-AI" target="_blank" class="qr-item" title="Open GitHub Repository">
+            <div class="qr-svg-wrapper">
+              <?xml version="1.0" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 232 232" width="100%" height="100%">
+	<!-- Created with https://api.qrserver.com (QR Code API, see goQR.me/api for information) -->
+	<title>QR Code</title>
+	<desc>https://github.com/sanket200511/CrisisForge-AI</desc>
+	<rect style="fill:rgb(255, 255, 255);fill-opacity:1" x="0" y="0" width="232" height="232" />
+	<g id="elements">
+		<path style="fill:rgb(0, 0, 0)" d="M 0,0 l 8,0 0,8 -8,0 z M 8,0 l 8,0 0,8 -8,0 z M 16,0 l 8,0 0,8 -8,0 z M 24,0 l 8,0 0,8 -8,0 z M 32,0 l 8,0 0,8 -8,0 z M 40,0 l 8,0 0,8 -8,0 z M 48,0 l 8,0 0,8 -8,0 z M 72,0 l 8,0 0,8 -8,0 z M 104,0 l 8,0 0,8 -8,0 z M 112,0 l 8,0 0,8 -8,0 z M 120,0 l 8,0 0,8 -8,0 z M 136,0 l 8,0 0,8 -8,0 z M 144,0 l 8,0 0,8 -8,0 z M 152,0 l 8,0 0,8 -8,0 z M 160,0 l 8,0 0,8 -8,0 z M 176,0 l 8,0 0,8 -8,0 z M 184,0 l 8,0 0,8 -8,0 z M 192,0 l 8,0 0,8 -8,0 z M 200,0 l 8,0 0,8 -8,0 z M 208,0 l 8,0 0,8 -8,0 z M 216,0 l 8,0 0,8 -8,0 z M 224,0 l 8,0 0,8 -8,0 z M 0,8 l 8,0 0,8 -8,0 z M 48,8 l 8,0 0,8 -8,0 z M 64,8 l 8,0 0,8 -8,0 z M 72,8 l 8,0 0,8 -8,0 z M 88,8 l 8,0 0,8 -8,0 z M 96,8 l 8,0 0,8 -8,0 z M 104,8 l 8,0 0,8 -8,0 z M 128,8 l 8,0 0,8 -8,0 z M 136,8 l 8,0 0,8 -8,0 z M 144,8 l 8,0 0,8 -8,0 z M 176,8 l 8,0 0,8 -8,0 z M 224,8 l 8,0 0,8 -8,0 z M 0,16 l 8,0 0,8 -8,0 z M 16,16 l 8,0 0,8 -8,0 z M 24,16 l 8,0 0,8 -8,0 z M 32,16 l 8,0 0,8 -8,0 z M 48,16 l 8,0 0,8 -8,0 z M 72,16 l 8,0 0,8 -8,0 z M 80,16 l 8,0 0,8 -8,0 z M 88,16 l 8,0 0,8 -8,0 z M 112,16 l 8,0 0,8 -8,0 z M 152,16 l 8,0 0,8 -8,0 z M 160,16 l 8,0 0,8 -8,0 z M 176,16 l 8,0 0,8 -8,0 z M 192,16 l 8,0 0,8 -8,0 z M 200,16 l 8,0 0,8 -8,0 z M 208,16 l 8,0 0,8 -8,0 z M 224,16 l 8,0 0,8 -8,0 z M 0,24 l 8,0 0,8 -8,0 z M 16,24 l 8,0 0,8 -8,0 z M 24,24 l 8,0 0,8 -8,0 z M 32,24 l 8,0 0,8 -8,0 z M 48,24 l 8,0 0,8 -8,0 z M 64,24 l 8,0 0,8 -8,0 z M 72,24 l 8,0 0,8 -8,0 z M 88,24 l 8,0 0,8 -8,0 z M 112,24 l 8,0 0,8 -8,0 z M 136,24 l 8,0 0,8 -8,0 z M 152,24 l 8,0 0,8 -8,0 z M 176,24 l 8,0 0,8 -8,0 z M 192,24 l 8,0 0,8 -8,0 z M 200,24 l 8,0 0,8 -8,0 z M 208,24 l 8,0 0,8 -8,0 z M 224,24 l 8,0 0,8 -8,0 z M 0,32 l 8,0 0,8 -8,0 z M 16,32 l 8,0 0,8 -8,0 z M 24,32 l 8,0 0,8 -8,0 z M 32,32 l 8,0 0,8 -8,0 z M 48,32 l 8,0 0,8 -8,0 z M 80,32 l 8,0 0,8 -8,0 z M 96,32 l 8,0 0,8 -8,0 z M 104,32 l 8,0 0,8 -8,0 z M 120,32 l 8,0 0,8 -8,0 z M 128,32 l 8,0 0,8 -8,0 z M 144,32 l 8,0 0,8 -8,0 z M 152,32 l 8,0 0,8 -8,0 z M 160,32 l 8,0 0,8 -8,0 z M 176,32 l 8,0 0,8 -8,0 z M 192,32 l 8,0 0,8 -8,0 z M 200,32 l 8,0 0,8 -8,0 z M 208,32 l 8,0 0,8 -8,0 z M 224,32 l 8,0 0,8 -8,0 z M 0,40 l 8,0 0,8 -8,0 z M 48,40 l 8,0 0,8 -8,0 z M 64,40 l 8,0 0,8 -8,0 z M 80,40 l 8,0 0,8 -8,0 z M 104,40 l 8,0 0,8 -8,0 z M 120,40 l 8,0 0,8 -8,0 z M 128,40 l 8,0 0,8 -8,0 z M 160,40 l 8,0 0,8 -8,0 z M 176,40 l 8,0 0,8 -8,0 z M 224,40 l 8,0 0,8 -8,0 z M 0,48 l 8,0 0,8 -8,0 z M 8,48 l 8,0 0,8 -8,0 z M 16,48 l 8,0 0,8 -8,0 z M 24,48 l 8,0 0,8 -8,0 z M 32,48 l 8,0 0,8 -8,0 z M 40,48 l 8,0 0,8 -8,0 z M 48,48 l 8,0 0,8 -8,0 z M 64,48 l 8,0 0,8 -8,0 z M 80,48 l 8,0 0,8 -8,0 z M 96,48 l 8,0 0,8 -8,0 z M 112,48 l 8,0 0,8 -8,0 z M 128,48 l 8,0 0,8 -8,0 z M 144,48 l 8,0 0,8 -8,0 z M 160,48 l 8,0 0,8 -8,0 z M 176,48 l 8,0 0,8 -8,0 z M 184,48 l 8,0 0,8 -8,0 z M 192,48 l 8,0 0,8 -8,0 z M 200,48 l 8,0 0,8 -8,0 z M 208,48 l 8,0 0,8 -8,0 z M 216,48 l 8,0 0,8 -8,0 z M 224,48 l 8,0 0,8 -8,0 z M 96,56 l 8,0 0,8 -8,0 z M 104,56 l 8,0 0,8 -8,0 z M 112,56 l 8,0 0,8 -8,0 z M 0,64 l 8,0 0,8 -8,0 z M 8,64 l 8,0 0,8 -8,0 z M 16,64 l 8,0 0,8 -8,0 z M 24,64 l 8,0 0,8 -8,0 z M 32,64 l 8,0 0,8 -8,0 z M 48,64 l 8,0 0,8 -8,0 z M 56,64 l 8,0 0,8 -8,0 z M 64,64 l 8,0 0,8 -8,0 z M 72,64 l 8,0 0,8 -8,0 z M 80,64 l 8,0 0,8 -8,0 z M 96,64 l 8,0 0,8 -8,0 z M 120,64 l 8,0 0,8 -8,0 z M 128,64 l 8,0 0,8 -8,0 z M 136,64 l 8,0 0,8 -8,0 z M 168,64 l 8,0 0,8 -8,0 z M 184,64 l 8,0 0,8 -8,0 z M 200,64 l 8,0 0,8 -8,0 z M 216,64 l 8,0 0,8 -8,0 z M 0,72 l 8,0 0,8 -8,0 z M 32,72 l 8,0 0,8 -8,0 z M 56,72 l 8,0 0,8 -8,0 z M 72,72 l 8,0 0,8 -8,0 z M 104,72 l 8,0 0,8 -8,0 z M 112,72 l 8,0 0,8 -8,0 z M 120,72 l 8,0 0,8 -8,0 z M 152,72 l 8,0 0,8 -8,0 z M 160,72 l 8,0 0,8 -8,0 z M 176,72 l 8,0 0,8 -8,0 z M 184,72 l 8,0 0,8 -8,0 z M 192,72 l 8,0 0,8 -8,0 z M 224,72 l 8,0 0,8 -8,0 z M 0,80 l 8,0 0,8 -8,0 z M 24,80 l 8,0 0,8 -8,0 z M 32,80 l 8,0 0,8 -8,0 z M 40,80 l 8,0 0,8 -8,0 z M 48,80 l 8,0 0,8 -8,0 z M 72,80 l 8,0 0,8 -8,0 z M 88,80 l 8,0 0,8 -8,0 z M 96,80 l 8,0 0,8 -8,0 z M 104,80 l 8,0 0,8 -8,0 z M 128,80 l 8,0 0,8 -8,0 z M 160,80 l 8,0 0,8 -8,0 z M 192,80 l 8,0 0,8 -8,0 z M 0,88 l 8,0 0,8 -8,0 z M 16,88 l 8,0 0,8 -8,0 z M 24,88 l 8,0 0,8 -8,0 z M 32,88 l 8,0 0,8 -8,0 z M 40,88 l 8,0 0,8 -8,0 z M 72,88 l 8,0 0,8 -8,0 z M 80,88 l 8,0 0,8 -8,0 z M 88,88 l 8,0 0,8 -8,0 z M 144,88 l 8,0 0,8 -8,0 z M 152,88 l 8,0 0,8 -8,0 z M 200,88 l 8,0 0,8 -8,0 z M 216,88 l 8,0 0,8 -8,0 z M 24,96 l 8,0 0,8 -8,0 z M 40,96 l 8,0 0,8 -8,0 z M 48,96 l 8,0 0,8 -8,0 z M 56,96 l 8,0 0,8 -8,0 z M 64,96 l 8,0 0,8 -8,0 z M 72,96 l 8,0 0,8 -8,0 z M 88,96 l 8,0 0,8 -8,0 z M 96,96 l 8,0 0,8 -8,0 z M 104,96 l 8,0 0,8 -8,0 z M 136,96 l 8,0 0,8 -8,0 z M 144,96 l 8,0 0,8 -8,0 z M 160,96 l 8,0 0,8 -8,0 z M 200,96 l 8,0 0,8 -8,0 z M 208,96 l 8,0 0,8 -8,0 z M 0,104 l 8,0 0,8 -8,0 z M 8,104 l 8,0 0,8 -8,0 z M 24,104 l 8,0 0,8 -8,0 z M 32,104 l 8,0 0,8 -8,0 z M 56,104 l 8,0 0,8 -8,0 z M 64,104 l 8,0 0,8 -8,0 z M 72,104 l 8,0 0,8 -8,0 z M 80,104 l 8,0 0,8 -8,0 z M 96,104 l 8,0 0,8 -8,0 z M 112,104 l 8,0 0,8 -8,0 z M 128,104 l 8,0 0,8 -8,0 z M 144,104 l 8,0 0,8 -8,0 z M 152,104 l 8,0 0,8 -8,0 z M 160,104 l 8,0 0,8 -8,0 z M 168,104 l 8,0 0,8 -8,0 z M 176,104 l 8,0 0,8 -8,0 z M 184,104 l 8,0 0,8 -8,0 z M 192,104 l 8,0 0,8 -8,0 z M 224,104 l 8,0 0,8 -8,0 z M 0,112 l 8,0 0,8 -8,0 z M 8,112 l 8,0 0,8 -8,0 z M 16,112 l 8,0 0,8 -8,0 z M 48,112 l 8,0 0,8 -8,0 z M 64,112 l 8,0 0,8 -8,0 z M 72,112 l 8,0 0,8 -8,0 z M 96,112 l 8,0 0,8 -8,0 z M 104,112 l 8,0 0,8 -8,0 z M 120,112 l 8,0 0,8 -8,0 z M 144,112 l 8,0 0,8 -8,0 z M 160,112 l 8,0 0,8 -8,0 z M 168,112 l 8,0 0,8 -8,0 z M 192,112 l 8,0 0,8 -8,0 z M 200,112 l 8,0 0,8 -8,0 z M 208,112 l 8,0 0,8 -8,0 z M 0,120 l 8,0 0,8 -8,0 z M 16,120 l 8,0 0,8 -8,0 z M 56,120 l 8,0 0,8 -8,0 z M 64,120 l 8,0 0,8 -8,0 z M 72,120 l 8,0 0,8 -8,0 z M 80,120 l 8,0 0,8 -8,0 z M 96,120 l 8,0 0,8 -8,0 z M 112,120 l 8,0 0,8 -8,0 z M 120,120 l 8,0 0,8 -8,0 z M 144,120 l 8,0 0,8 -8,0 z M 152,120 l 8,0 0,8 -8,0 z M 160,120 l 8,0 0,8 -8,0 z M 168,120 l 8,0 0,8 -8,0 z M 176,120 l 8,0 0,8 -8,0 z M 184,120 l 8,0 0,8 -8,0 z M 192,120 l 8,0 0,8 -8,0 z M 216,120 l 8,0 0,8 -8,0 z M 0,128 l 8,0 0,8 -8,0 z M 8,128 l 8,0 0,8 -8,0 z M 16,128 l 8,0 0,8 -8,0 z M 24,128 l 8,0 0,8 -8,0 z M 32,128 l 8,0 0,8 -8,0 z M 48,128 l 8,0 0,8 -8,0 z M 64,128 l 8,0 0,8 -8,0 z M 88,128 l 8,0 0,8 -8,0 z M 96,128 l 8,0 0,8 -8,0 z M 104,128 l 8,0 0,8 -8,0 z M 112,128 l 8,0 0,8 -8,0 z M 120,128 l 8,0 0,8 -8,0 z M 152,128 l 8,0 0,8 -8,0 z M 168,128 l 8,0 0,8 -8,0 z M 184,128 l 8,0 0,8 -8,0 z M 200,128 l 8,0 0,8 -8,0 z M 208,128 l 8,0 0,8 -8,0 z M 0,136 l 8,0 0,8 -8,0 z M 32,136 l 8,0 0,8 -8,0 z M 56,136 l 8,0 0,8 -8,0 z M 64,136 l 8,0 0,8 -8,0 z M 72,136 l 8,0 0,8 -8,0 z M 80,136 l 8,0 0,8 -8,0 z M 104,136 l 8,0 0,8 -8,0 z M 112,136 l 8,0 0,8 -8,0 z M 144,136 l 8,0 0,8 -8,0 z M 152,136 l 8,0 0,8 -8,0 z M 168,136 l 8,0 0,8 -8,0 z M 176,136 l 8,0 0,8 -8,0 z M 184,136 l 8,0 0,8 -8,0 z M 192,136 l 8,0 0,8 -8,0 z M 208,136 l 8,0 0,8 -8,0 z M 224,136 l 8,0 0,8 -8,0 z M 0,144 l 8,0 0,8 -8,0 z M 16,144 l 8,0 0,8 -8,0 z M 32,144 l 8,0 0,8 -8,0 z M 48,144 l 8,0 0,8 -8,0 z M 72,144 l 8,0 0,8 -8,0 z M 80,144 l 8,0 0,8 -8,0 z M 96,144 l 8,0 0,8 -8,0 z M 104,144 l 8,0 0,8 -8,0 z M 128,144 l 8,0 0,8 -8,0 z M 144,144 l 8,0 0,8 -8,0 z M 160,144 l 8,0 0,8 -8,0 z M 176,144 l 8,0 0,8 -8,0 z M 184,144 l 8,0 0,8 -8,0 z M 192,144 l 8,0 0,8 -8,0 z M 208,144 l 8,0 0,8 -8,0 z M 0,152 l 8,0 0,8 -8,0 z M 32,152 l 8,0 0,8 -8,0 z M 40,152 l 8,0 0,8 -8,0 z M 80,152 l 8,0 0,8 -8,0 z M 88,152 l 8,0 0,8 -8,0 z M 96,152 l 8,0 0,8 -8,0 z M 104,152 l 8,0 0,8 -8,0 z M 112,152 l 8,0 0,8 -8,0 z M 120,152 l 8,0 0,8 -8,0 z M 128,152 l 8,0 0,8 -8,0 z M 144,152 l 8,0 0,8 -8,0 z M 160,152 l 8,0 0,8 -8,0 z M 168,152 l 8,0 0,8 -8,0 z M 176,152 l 8,0 0,8 -8,0 z M 216,152 l 8,0 0,8 -8,0 z M 0,160 l 8,0 0,8 -8,0 z M 24,160 l 8,0 0,8 -8,0 z M 40,160 l 8,0 0,8 -8,0 z M 48,160 l 8,0 0,8 -8,0 z M 56,160 l 8,0 0,8 -8,0 z M 64,160 l 8,0 0,8 -8,0 z M 72,160 l 8,0 0,8 -8,0 z M 88,160 l 8,0 0,8 -8,0 z M 96,160 l 8,0 0,8 -8,0 z M 152,160 l 8,0 0,8 -8,0 z M 160,160 l 8,0 0,8 -8,0 z M 168,160 l 8,0 0,8 -8,0 z M 176,160 l 8,0 0,8 -8,0 z M 184,160 l 8,0 0,8 -8,0 z M 192,160 l 8,0 0,8 -8,0 z M 208,160 l 8,0 0,8 -8,0 z M 216,160 l 8,0 0,8 -8,0 z M 224,160 l 8,0 0,8 -8,0 z M 64,168 l 8,0 0,8 -8,0 z M 96,168 l 8,0 0,8 -8,0 z M 112,168 l 8,0 0,8 -8,0 z M 120,168 l 8,0 0,8 -8,0 z M 128,168 l 8,0 0,8 -8,0 z M 136,168 l 8,0 0,8 -8,0 z M 160,168 l 8,0 0,8 -8,0 z M 192,168 l 8,0 0,8 -8,0 z M 200,168 l 8,0 0,8 -8,0 z M 208,168 l 8,0 0,8 -8,0 z M 216,168 l 8,0 0,8 -8,0 z M 224,168 l 8,0 0,8 -8,0 z M 0,176 l 8,0 0,8 -8,0 z M 8,176 l 8,0 0,8 -8,0 z M 16,176 l 8,0 0,8 -8,0 z M 24,176 l 8,0 0,8 -8,0 z M 32,176 l 8,0 0,8 -8,0 z M 40,176 l 8,0 0,8 -8,0 z M 48,176 l 8,0 0,8 -8,0 z M 64,176 l 8,0 0,8 -8,0 z M 80,176 l 8,0 0,8 -8,0 z M 96,176 l 8,0 0,8 -8,0 z M 104,176 l 8,0 0,8 -8,0 z M 128,176 l 8,0 0,8 -8,0 z M 136,176 l 8,0 0,8 -8,0 z M 144,176 l 8,0 0,8 -8,0 z M 152,176 l 8,0 0,8 -8,0 z M 160,176 l 8,0 0,8 -8,0 z M 176,176 l 8,0 0,8 -8,0 z M 192,176 l 8,0 0,8 -8,0 z M 200,176 l 8,0 0,8 -8,0 z M 208,176 l 8,0 0,8 -8,0 z M 0,184 l 8,0 0,8 -8,0 z M 48,184 l 8,0 0,8 -8,0 z M 80,184 l 8,0 0,8 -8,0 z M 88,184 l 8,0 0,8 -8,0 z M 96,184 l 8,0 0,8 -8,0 z M 112,184 l 8,0 0,8 -8,0 z M 144,184 l 8,0 0,8 -8,0 z M 152,184 l 8,0 0,8 -8,0 z M 160,184 l 8,0 0,8 -8,0 z M 192,184 l 8,0 0,8 -8,0 z M 0,192 l 8,0 0,8 -8,0 z M 16,192 l 8,0 0,8 -8,0 z M 24,192 l 8,0 0,8 -8,0 z M 32,192 l 8,0 0,8 -8,0 z M 48,192 l 8,0 0,8 -8,0 z M 64,192 l 8,0 0,8 -8,0 z M 88,192 l 8,0 0,8 -8,0 z M 96,192 l 8,0 0,8 -8,0 z M 104,192 l 8,0 0,8 -8,0 z M 128,192 l 8,0 0,8 -8,0 z M 144,192 l 8,0 0,8 -8,0 z M 160,192 l 8,0 0,8 -8,0 z M 168,192 l 8,0 0,8 -8,0 z M 176,192 l 8,0 0,8 -8,0 z M 184,192 l 8,0 0,8 -8,0 z M 192,192 l 8,0 0,8 -8,0 z M 208,192 l 8,0 0,8 -8,0 z M 216,192 l 8,0 0,8 -8,0 z M 224,192 l 8,0 0,8 -8,0 z M 0,200 l 8,0 0,8 -8,0 z M 16,200 l 8,0 0,8 -8,0 z M 24,200 l 8,0 0,8 -8,0 z M 32,200 l 8,0 0,8 -8,0 z M 48,200 l 8,0 0,8 -8,0 z M 64,200 l 8,0 0,8 -8,0 z M 80,200 l 8,0 0,8 -8,0 z M 88,200 l 8,0 0,8 -8,0 z M 104,200 l 8,0 0,8 -8,0 z M 112,200 l 8,0 0,8 -8,0 z M 144,200 l 8,0 0,8 -8,0 z M 152,200 l 8,0 0,8 -8,0 z M 160,200 l 8,0 0,8 -8,0 z M 200,200 l 8,0 0,8 -8,0 z M 208,200 l 8,0 0,8 -8,0 z M 0,208 l 8,0 0,8 -8,0 z M 16,208 l 8,0 0,8 -8,0 z M 24,208 l 8,0 0,8 -8,0 z M 32,208 l 8,0 0,8 -8,0 z M 48,208 l 8,0 0,8 -8,0 z M 64,208 l 8,0 0,8 -8,0 z M 72,208 l 8,0 0,8 -8,0 z M 104,208 l 8,0 0,8 -8,0 z M 144,208 l 8,0 0,8 -8,0 z M 152,208 l 8,0 0,8 -8,0 z M 160,208 l 8,0 0,8 -8,0 z M 168,208 l 8,0 0,8 -8,0 z M 176,208 l 8,0 0,8 -8,0 z M 184,208 l 8,0 0,8 -8,0 z M 192,208 l 8,0 0,8 -8,0 z M 200,208 l 8,0 0,8 -8,0 z M 208,208 l 8,0 0,8 -8,0 z M 216,208 l 8,0 0,8 -8,0 z M 0,216 l 8,0 0,8 -8,0 z M 48,216 l 8,0 0,8 -8,0 z M 64,216 l 8,0 0,8 -8,0 z M 96,216 l 8,0 0,8 -8,0 z M 112,216 l 8,0 0,8 -8,0 z M 120,216 l 8,0 0,8 -8,0 z M 136,216 l 8,0 0,8 -8,0 z M 144,216 l 8,0 0,8 -8,0 z M 160,216 l 8,0 0,8 -8,0 z M 168,216 l 8,0 0,8 -8,0 z M 184,216 l 8,0 0,8 -8,0 z M 200,216 l 8,0 0,8 -8,0 z M 216,216 l 8,0 0,8 -8,0 z M 0,224 l 8,0 0,8 -8,0 z M 8,224 l 8,0 0,8 -8,0 z M 16,224 l 8,0 0,8 -8,0 z M 24,224 l 8,0 0,8 -8,0 z M 32,224 l 8,0 0,8 -8,0 z M 40,224 l 8,0 0,8 -8,0 z M 48,224 l 8,0 0,8 -8,0 z M 64,224 l 8,0 0,8 -8,0 z M 72,224 l 8,0 0,8 -8,0 z M 80,224 l 8,0 0,8 -8,0 z M 88,224 l 8,0 0,8 -8,0 z M 96,224 l 8,0 0,8 -8,0 z M 104,224 l 8,0 0,8 -8,0 z M 120,224 l 8,0 0,8 -8,0 z M 136,224 l 8,0 0,8 -8,0 z M 144,224 l 8,0 0,8 -8,0 z M 152,224 l 8,0 0,8 -8,0 z M 176,224 l 8,0 0,8 -8,0 z M 184,224 l 8,0 0,8 -8,0 z M 192,224 l 8,0 0,8 -8,0 z M 208,224 l 8,0 0,8 -8,0 z " />
+	</g>
+</svg>
+
+            </div>
+            <span class="qr-label">GitHub Repository</span>
+            <span class="qr-url">sanket200511/CrisisForge-AI</span>
+          </a>
+
+          <a href="https://crisisforge-ai.vercel.app/" target="_blank" class="qr-item" title="Open Live Deployed Demo">
+            <div class="qr-svg-wrapper">
+              <?xml version="1.0" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 232 232" width="100%" height="100%">
+	<!-- Created with https://api.qrserver.com (QR Code API, see goQR.me/api for information) -->
+	<title>QR Code</title>
+	<desc>https://crisisforge-ai.vercel.app/</desc>
+	<rect style="fill:rgb(255, 255, 255);fill-opacity:1" x="0" y="0" width="232" height="232" />
+	<g id="elements">
+		<path style="fill:rgb(0, 0, 0)" d="M 0,0 l 8,0 0,8 -8,0 z M 8,0 l 8,0 0,8 -8,0 z M 16,0 l 8,0 0,8 -8,0 z M 24,0 l 8,0 0,8 -8,0 z M 32,0 l 8,0 0,8 -8,0 z M 40,0 l 8,0 0,8 -8,0 z M 48,0 l 8,0 0,8 -8,0 z M 80,0 l 8,0 0,8 -8,0 z M 96,0 l 8,0 0,8 -8,0 z M 104,0 l 8,0 0,8 -8,0 z M 112,0 l 8,0 0,8 -8,0 z M 120,0 l 8,0 0,8 -8,0 z M 136,0 l 8,0 0,8 -8,0 z M 144,0 l 8,0 0,8 -8,0 z M 152,0 l 8,0 0,8 -8,0 z M 176,0 l 8,0 0,8 -8,0 z M 184,0 l 8,0 0,8 -8,0 z M 192,0 l 8,0 0,8 -8,0 z M 200,0 l 8,0 0,8 -8,0 z M 208,0 l 8,0 0,8 -8,0 z M 216,0 l 8,0 0,8 -8,0 z M 224,0 l 8,0 0,8 -8,0 z M 0,8 l 8,0 0,8 -8,0 z M 48,8 l 8,0 0,8 -8,0 z M 64,8 l 8,0 0,8 -8,0 z M 80,8 l 8,0 0,8 -8,0 z M 104,8 l 8,0 0,8 -8,0 z M 112,8 l 8,0 0,8 -8,0 z M 120,8 l 8,0 0,8 -8,0 z M 128,8 l 8,0 0,8 -8,0 z M 136,8 l 8,0 0,8 -8,0 z M 160,8 l 8,0 0,8 -8,0 z M 176,8 l 8,0 0,8 -8,0 z M 224,8 l 8,0 0,8 -8,0 z M 0,16 l 8,0 0,8 -8,0 z M 16,16 l 8,0 0,8 -8,0 z M 24,16 l 8,0 0,8 -8,0 z M 32,16 l 8,0 0,8 -8,0 z M 48,16 l 8,0 0,8 -8,0 z M 96,16 l 8,0 0,8 -8,0 z M 104,16 l 8,0 0,8 -8,0 z M 120,16 l 8,0 0,8 -8,0 z M 144,16 l 8,0 0,8 -8,0 z M 176,16 l 8,0 0,8 -8,0 z M 192,16 l 8,0 0,8 -8,0 z M 200,16 l 8,0 0,8 -8,0 z M 208,16 l 8,0 0,8 -8,0 z M 224,16 l 8,0 0,8 -8,0 z M 0,24 l 8,0 0,8 -8,0 z M 16,24 l 8,0 0,8 -8,0 z M 24,24 l 8,0 0,8 -8,0 z M 32,24 l 8,0 0,8 -8,0 z M 48,24 l 8,0 0,8 -8,0 z M 64,24 l 8,0 0,8 -8,0 z M 72,24 l 8,0 0,8 -8,0 z M 80,24 l 8,0 0,8 -8,0 z M 96,24 l 8,0 0,8 -8,0 z M 112,24 l 8,0 0,8 -8,0 z M 120,24 l 8,0 0,8 -8,0 z M 136,24 l 8,0 0,8 -8,0 z M 152,24 l 8,0 0,8 -8,0 z M 176,24 l 8,0 0,8 -8,0 z M 192,24 l 8,0 0,8 -8,0 z M 200,24 l 8,0 0,8 -8,0 z M 208,24 l 8,0 0,8 -8,0 z M 224,24 l 8,0 0,8 -8,0 z M 0,32 l 8,0 0,8 -8,0 z M 16,32 l 8,0 0,8 -8,0 z M 24,32 l 8,0 0,8 -8,0 z M 32,32 l 8,0 0,8 -8,0 z M 48,32 l 8,0 0,8 -8,0 z M 72,32 l 8,0 0,8 -8,0 z M 120,32 l 8,0 0,8 -8,0 z M 128,32 l 8,0 0,8 -8,0 z M 152,32 l 8,0 0,8 -8,0 z M 160,32 l 8,0 0,8 -8,0 z M 176,32 l 8,0 0,8 -8,0 z M 192,32 l 8,0 0,8 -8,0 z M 200,32 l 8,0 0,8 -8,0 z M 208,32 l 8,0 0,8 -8,0 z M 224,32 l 8,0 0,8 -8,0 z M 0,40 l 8,0 0,8 -8,0 z M 48,40 l 8,0 0,8 -8,0 z M 64,40 l 8,0 0,8 -8,0 z M 72,40 l 8,0 0,8 -8,0 z M 88,40 l 8,0 0,8 -8,0 z M 96,40 l 8,0 0,8 -8,0 z M 136,40 l 8,0 0,8 -8,0 z M 160,40 l 8,0 0,8 -8,0 z M 176,40 l 8,0 0,8 -8,0 z M 224,40 l 8,0 0,8 -8,0 z M 0,48 l 8,0 0,8 -8,0 z M 8,48 l 8,0 0,8 -8,0 z M 16,48 l 8,0 0,8 -8,0 z M 24,48 l 8,0 0,8 -8,0 z M 32,48 l 8,0 0,8 -8,0 z M 40,48 l 8,0 0,8 -8,0 z M 48,48 l 8,0 0,8 -8,0 z M 64,48 l 8,0 0,8 -8,0 z M 80,48 l 8,0 0,8 -8,0 z M 96,48 l 8,0 0,8 -8,0 z M 112,48 l 8,0 0,8 -8,0 z M 128,48 l 8,0 0,8 -8,0 z M 144,48 l 8,0 0,8 -8,0 z M 160,48 l 8,0 0,8 -8,0 z M 176,48 l 8,0 0,8 -8,0 z M 184,48 l 8,0 0,8 -8,0 z M 192,48 l 8,0 0,8 -8,0 z M 200,48 l 8,0 0,8 -8,0 z M 208,48 l 8,0 0,8 -8,0 z M 216,48 l 8,0 0,8 -8,0 z M 224,48 l 8,0 0,8 -8,0 z M 72,56 l 8,0 0,8 -8,0 z M 80,56 l 8,0 0,8 -8,0 z M 88,56 l 8,0 0,8 -8,0 z M 112,56 l 8,0 0,8 -8,0 z M 128,56 l 8,0 0,8 -8,0 z M 144,56 l 8,0 0,8 -8,0 z M 0,64 l 8,0 0,8 -8,0 z M 8,64 l 8,0 0,8 -8,0 z M 16,64 l 8,0 0,8 -8,0 z M 24,64 l 8,0 0,8 -8,0 z M 32,64 l 8,0 0,8 -8,0 z M 48,64 l 8,0 0,8 -8,0 z M 56,64 l 8,0 0,8 -8,0 z M 64,64 l 8,0 0,8 -8,0 z M 72,64 l 8,0 0,8 -8,0 z M 88,64 l 8,0 0,8 -8,0 z M 136,64 l 8,0 0,8 -8,0 z M 168,64 l 8,0 0,8 -8,0 z M 184,64 l 8,0 0,8 -8,0 z M 200,64 l 8,0 0,8 -8,0 z M 216,64 l 8,0 0,8 -8,0 z M 8,72 l 8,0 0,8 -8,0 z M 16,72 l 8,0 0,8 -8,0 z M 32,72 l 8,0 0,8 -8,0 z M 40,72 l 8,0 0,8 -8,0 z M 56,72 l 8,0 0,8 -8,0 z M 80,72 l 8,0 0,8 -8,0 z M 96,72 l 8,0 0,8 -8,0 z M 104,72 l 8,0 0,8 -8,0 z M 112,72 l 8,0 0,8 -8,0 z M 120,72 l 8,0 0,8 -8,0 z M 144,72 l 8,0 0,8 -8,0 z M 152,72 l 8,0 0,8 -8,0 z M 160,72 l 8,0 0,8 -8,0 z M 168,72 l 8,0 0,8 -8,0 z M 176,72 l 8,0 0,8 -8,0 z M 184,72 l 8,0 0,8 -8,0 z M 192,72 l 8,0 0,8 -8,0 z M 224,72 l 8,0 0,8 -8,0 z M 0,80 l 8,0 0,8 -8,0 z M 16,80 l 8,0 0,8 -8,0 z M 32,80 l 8,0 0,8 -8,0 z M 40,80 l 8,0 0,8 -8,0 z M 48,80 l 8,0 0,8 -8,0 z M 64,80 l 8,0 0,8 -8,0 z M 80,80 l 8,0 0,8 -8,0 z M 104,80 l 8,0 0,8 -8,0 z M 112,80 l 8,0 0,8 -8,0 z M 120,80 l 8,0 0,8 -8,0 z M 128,80 l 8,0 0,8 -8,0 z M 160,80 l 8,0 0,8 -8,0 z M 168,80 l 8,0 0,8 -8,0 z M 176,80 l 8,0 0,8 -8,0 z M 184,80 l 8,0 0,8 -8,0 z M 32,88 l 8,0 0,8 -8,0 z M 40,88 l 8,0 0,8 -8,0 z M 64,88 l 8,0 0,8 -8,0 z M 96,88 l 8,0 0,8 -8,0 z M 104,88 l 8,0 0,8 -8,0 z M 128,88 l 8,0 0,8 -8,0 z M 160,88 l 8,0 0,8 -8,0 z M 192,88 l 8,0 0,8 -8,0 z M 200,88 l 8,0 0,8 -8,0 z M 216,88 l 8,0 0,8 -8,0 z M 8,96 l 8,0 0,8 -8,0 z M 16,96 l 8,0 0,8 -8,0 z M 24,96 l 8,0 0,8 -8,0 z M 32,96 l 8,0 0,8 -8,0 z M 40,96 l 8,0 0,8 -8,0 z M 48,96 l 8,0 0,8 -8,0 z M 72,96 l 8,0 0,8 -8,0 z M 80,96 l 8,0 0,8 -8,0 z M 96,96 l 8,0 0,8 -8,0 z M 112,96 l 8,0 0,8 -8,0 z M 136,96 l 8,0 0,8 -8,0 z M 152,96 l 8,0 0,8 -8,0 z M 184,96 l 8,0 0,8 -8,0 z M 200,96 l 8,0 0,8 -8,0 z M 208,96 l 8,0 0,8 -8,0 z M 16,104 l 8,0 0,8 -8,0 z M 32,104 l 8,0 0,8 -8,0 z M 40,104 l 8,0 0,8 -8,0 z M 56,104 l 8,0 0,8 -8,0 z M 64,104 l 8,0 0,8 -8,0 z M 72,104 l 8,0 0,8 -8,0 z M 152,104 l 8,0 0,8 -8,0 z M 176,104 l 8,0 0,8 -8,0 z M 184,104 l 8,0 0,8 -8,0 z M 192,104 l 8,0 0,8 -8,0 z M 224,104 l 8,0 0,8 -8,0 z M 0,112 l 8,0 0,8 -8,0 z M 16,112 l 8,0 0,8 -8,0 z M 24,112 l 8,0 0,8 -8,0 z M 40,112 l 8,0 0,8 -8,0 z M 48,112 l 8,0 0,8 -8,0 z M 72,112 l 8,0 0,8 -8,0 z M 88,112 l 8,0 0,8 -8,0 z M 96,112 l 8,0 0,8 -8,0 z M 120,112 l 8,0 0,8 -8,0 z M 136,112 l 8,0 0,8 -8,0 z M 144,112 l 8,0 0,8 -8,0 z M 160,112 l 8,0 0,8 -8,0 z M 168,112 l 8,0 0,8 -8,0 z M 184,112 l 8,0 0,8 -8,0 z M 192,112 l 8,0 0,8 -8,0 z M 200,112 l 8,0 0,8 -8,0 z M 208,112 l 8,0 0,8 -8,0 z M 8,120 l 8,0 0,8 -8,0 z M 16,120 l 8,0 0,8 -8,0 z M 24,120 l 8,0 0,8 -8,0 z M 32,120 l 8,0 0,8 -8,0 z M 40,120 l 8,0 0,8 -8,0 z M 64,120 l 8,0 0,8 -8,0 z M 72,120 l 8,0 0,8 -8,0 z M 88,120 l 8,0 0,8 -8,0 z M 112,120 l 8,0 0,8 -8,0 z M 120,120 l 8,0 0,8 -8,0 z M 144,120 l 8,0 0,8 -8,0 z M 160,120 l 8,0 0,8 -8,0 z M 176,120 l 8,0 0,8 -8,0 z M 216,120 l 8,0 0,8 -8,0 z M 0,128 l 8,0 0,8 -8,0 z M 8,128 l 8,0 0,8 -8,0 z M 32,128 l 8,0 0,8 -8,0 z M 40,128 l 8,0 0,8 -8,0 z M 48,128 l 8,0 0,8 -8,0 z M 56,128 l 8,0 0,8 -8,0 z M 72,128 l 8,0 0,8 -8,0 z M 80,128 l 8,0 0,8 -8,0 z M 88,128 l 8,0 0,8 -8,0 z M 120,128 l 8,0 0,8 -8,0 z M 128,128 l 8,0 0,8 -8,0 z M 136,128 l 8,0 0,8 -8,0 z M 200,128 l 8,0 0,8 -8,0 z M 208,128 l 8,0 0,8 -8,0 z M 0,136 l 8,0 0,8 -8,0 z M 56,136 l 8,0 0,8 -8,0 z M 64,136 l 8,0 0,8 -8,0 z M 72,136 l 8,0 0,8 -8,0 z M 96,136 l 8,0 0,8 -8,0 z M 104,136 l 8,0 0,8 -8,0 z M 112,136 l 8,0 0,8 -8,0 z M 128,136 l 8,0 0,8 -8,0 z M 144,136 l 8,0 0,8 -8,0 z M 152,136 l 8,0 0,8 -8,0 z M 160,136 l 8,0 0,8 -8,0 z M 168,136 l 8,0 0,8 -8,0 z M 176,136 l 8,0 0,8 -8,0 z M 184,136 l 8,0 0,8 -8,0 z M 192,136 l 8,0 0,8 -8,0 z M 208,136 l 8,0 0,8 -8,0 z M 224,136 l 8,0 0,8 -8,0 z M 0,144 l 8,0 0,8 -8,0 z M 16,144 l 8,0 0,8 -8,0 z M 24,144 l 8,0 0,8 -8,0 z M 32,144 l 8,0 0,8 -8,0 z M 48,144 l 8,0 0,8 -8,0 z M 56,144 l 8,0 0,8 -8,0 z M 64,144 l 8,0 0,8 -8,0 z M 72,144 l 8,0 0,8 -8,0 z M 104,144 l 8,0 0,8 -8,0 z M 112,144 l 8,0 0,8 -8,0 z M 120,144 l 8,0 0,8 -8,0 z M 136,144 l 8,0 0,8 -8,0 z M 144,144 l 8,0 0,8 -8,0 z M 160,144 l 8,0 0,8 -8,0 z M 208,144 l 8,0 0,8 -8,0 z M 0,152 l 8,0 0,8 -8,0 z M 24,152 l 8,0 0,8 -8,0 z M 80,152 l 8,0 0,8 -8,0 z M 96,152 l 8,0 0,8 -8,0 z M 104,152 l 8,0 0,8 -8,0 z M 120,152 l 8,0 0,8 -8,0 z M 152,152 l 8,0 0,8 -8,0 z M 160,152 l 8,0 0,8 -8,0 z M 168,152 l 8,0 0,8 -8,0 z M 176,152 l 8,0 0,8 -8,0 z M 192,152 l 8,0 0,8 -8,0 z M 216,152 l 8,0 0,8 -8,0 z M 0,160 l 8,0 0,8 -8,0 z M 16,160 l 8,0 0,8 -8,0 z M 24,160 l 8,0 0,8 -8,0 z M 32,160 l 8,0 0,8 -8,0 z M 40,160 l 8,0 0,8 -8,0 z M 48,160 l 8,0 0,8 -8,0 z M 96,160 l 8,0 0,8 -8,0 z M 112,160 l 8,0 0,8 -8,0 z M 120,160 l 8,0 0,8 -8,0 z M 128,160 l 8,0 0,8 -8,0 z M 136,160 l 8,0 0,8 -8,0 z M 160,160 l 8,0 0,8 -8,0 z M 168,160 l 8,0 0,8 -8,0 z M 176,160 l 8,0 0,8 -8,0 z M 184,160 l 8,0 0,8 -8,0 z M 192,160 l 8,0 0,8 -8,0 z M 208,160 l 8,0 0,8 -8,0 z M 216,160 l 8,0 0,8 -8,0 z M 224,160 l 8,0 0,8 -8,0 z M 64,168 l 8,0 0,8 -8,0 z M 80,168 l 8,0 0,8 -8,0 z M 128,168 l 8,0 0,8 -8,0 z M 144,168 l 8,0 0,8 -8,0 z M 160,168 l 8,0 0,8 -8,0 z M 192,168 l 8,0 0,8 -8,0 z M 200,168 l 8,0 0,8 -8,0 z M 208,168 l 8,0 0,8 -8,0 z M 216,168 l 8,0 0,8 -8,0 z M 224,168 l 8,0 0,8 -8,0 z M 0,176 l 8,0 0,8 -8,0 z M 8,176 l 8,0 0,8 -8,0 z M 16,176 l 8,0 0,8 -8,0 z M 24,176 l 8,0 0,8 -8,0 z M 32,176 l 8,0 0,8 -8,0 z M 40,176 l 8,0 0,8 -8,0 z M 48,176 l 8,0 0,8 -8,0 z M 64,176 l 8,0 0,8 -8,0 z M 80,176 l 8,0 0,8 -8,0 z M 88,176 l 8,0 0,8 -8,0 z M 96,176 l 8,0 0,8 -8,0 z M 120,176 l 8,0 0,8 -8,0 z M 128,176 l 8,0 0,8 -8,0 z M 152,176 l 8,0 0,8 -8,0 z M 160,176 l 8,0 0,8 -8,0 z M 176,176 l 8,0 0,8 -8,0 z M 192,176 l 8,0 0,8 -8,0 z M 200,176 l 8,0 0,8 -8,0 z M 208,176 l 8,0 0,8 -8,0 z M 0,184 l 8,0 0,8 -8,0 z M 48,184 l 8,0 0,8 -8,0 z M 72,184 l 8,0 0,8 -8,0 z M 88,184 l 8,0 0,8 -8,0 z M 112,184 l 8,0 0,8 -8,0 z M 120,184 l 8,0 0,8 -8,0 z M 152,184 l 8,0 0,8 -8,0 z M 160,184 l 8,0 0,8 -8,0 z M 192,184 l 8,0 0,8 -8,0 z M 216,184 l 8,0 0,8 -8,0 z M 224,184 l 8,0 0,8 -8,0 z M 0,192 l 8,0 0,8 -8,0 z M 16,192 l 8,0 0,8 -8,0 z M 24,192 l 8,0 0,8 -8,0 z M 32,192 l 8,0 0,8 -8,0 z M 48,192 l 8,0 0,8 -8,0 z M 64,192 l 8,0 0,8 -8,0 z M 88,192 l 8,0 0,8 -8,0 z M 120,192 l 8,0 0,8 -8,0 z M 136,192 l 8,0 0,8 -8,0 z M 160,192 l 8,0 0,8 -8,0 z M 168,192 l 8,0 0,8 -8,0 z M 176,192 l 8,0 0,8 -8,0 z M 184,192 l 8,0 0,8 -8,0 z M 192,192 l 8,0 0,8 -8,0 z M 208,192 l 8,0 0,8 -8,0 z M 216,192 l 8,0 0,8 -8,0 z M 0,200 l 8,0 0,8 -8,0 z M 16,200 l 8,0 0,8 -8,0 z M 24,200 l 8,0 0,8 -8,0 z M 32,200 l 8,0 0,8 -8,0 z M 48,200 l 8,0 0,8 -8,0 z M 64,200 l 8,0 0,8 -8,0 z M 80,200 l 8,0 0,8 -8,0 z M 96,200 l 8,0 0,8 -8,0 z M 104,200 l 8,0 0,8 -8,0 z M 112,200 l 8,0 0,8 -8,0 z M 128,200 l 8,0 0,8 -8,0 z M 136,200 l 8,0 0,8 -8,0 z M 144,200 l 8,0 0,8 -8,0 z M 160,200 l 8,0 0,8 -8,0 z M 184,200 l 8,0 0,8 -8,0 z M 200,200 l 8,0 0,8 -8,0 z M 208,200 l 8,0 0,8 -8,0 z M 216,200 l 8,0 0,8 -8,0 z M 224,200 l 8,0 0,8 -8,0 z M 0,208 l 8,0 0,8 -8,0 z M 16,208 l 8,0 0,8 -8,0 z M 24,208 l 8,0 0,8 -8,0 z M 32,208 l 8,0 0,8 -8,0 z M 48,208 l 8,0 0,8 -8,0 z M 64,208 l 8,0 0,8 -8,0 z M 80,208 l 8,0 0,8 -8,0 z M 104,208 l 8,0 0,8 -8,0 z M 112,208 l 8,0 0,8 -8,0 z M 120,208 l 8,0 0,8 -8,0 z M 168,208 l 8,0 0,8 -8,0 z M 176,208 l 8,0 0,8 -8,0 z M 184,208 l 8,0 0,8 -8,0 z M 192,208 l 8,0 0,8 -8,0 z M 200,208 l 8,0 0,8 -8,0 z M 208,208 l 8,0 0,8 -8,0 z M 216,208 l 8,0 0,8 -8,0 z M 0,216 l 8,0 0,8 -8,0 z M 48,216 l 8,0 0,8 -8,0 z M 64,216 l 8,0 0,8 -8,0 z M 80,216 l 8,0 0,8 -8,0 z M 96,216 l 8,0 0,8 -8,0 z M 104,216 l 8,0 0,8 -8,0 z M 128,216 l 8,0 0,8 -8,0 z M 144,216 l 8,0 0,8 -8,0 z M 152,216 l 8,0 0,8 -8,0 z M 160,216 l 8,0 0,8 -8,0 z M 176,216 l 8,0 0,8 -8,0 z M 184,216 l 8,0 0,8 -8,0 z M 200,216 l 8,0 0,8 -8,0 z M 216,216 l 8,0 0,8 -8,0 z M 0,224 l 8,0 0,8 -8,0 z M 8,224 l 8,0 0,8 -8,0 z M 16,224 l 8,0 0,8 -8,0 z M 24,224 l 8,0 0,8 -8,0 z M 32,224 l 8,0 0,8 -8,0 z M 40,224 l 8,0 0,8 -8,0 z M 48,224 l 8,0 0,8 -8,0 z M 64,224 l 8,0 0,8 -8,0 z M 72,224 l 8,0 0,8 -8,0 z M 96,224 l 8,0 0,8 -8,0 z M 112,224 l 8,0 0,8 -8,0 z M 136,224 l 8,0 0,8 -8,0 z M 144,224 l 8,0 0,8 -8,0 z M 152,224 l 8,0 0,8 -8,0 z M 176,224 l 8,0 0,8 -8,0 z M 192,224 l 8,0 0,8 -8,0 z M 208,224 l 8,0 0,8 -8,0 z " />
+	</g>
+</svg>
+
+            </div>
+            <span class="qr-label">Live Web Demo</span>
+            <span class="qr-url">crisisforge-ai.vercel.app</span>
+          </a>
+
+        </div>
+      </div>
+    </footer>
+
+  </main>
+
+  <!-- Interactive Detail Modal (Digital View Only) -->
+  <div class="modal-overlay no-print" id="info-modal" onclick="closeModal(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <button class="modal-close" onclick="closeModal(event)">&times;</button>
+      <h3 class="modal-title" id="m-title">Component Title</h3>
+      <p class="modal-desc" id="m-desc">Component Description</p>
+      <div class="modal-code" id="m-code">Code Specification</div>
+    </div>
+  </div>
+
+  <script>
+    const DETAILS = {
+      forecast: {
+        title: "01 — Inflow Forecasting & Monte Carlo Simulation",
+        desc: "Combines secular trend, weekly harmonic seasonality (5 sin(2 pi t / 7)), and crisis surge dynamics. Executes 200 stochastic simulation paths to compute empirical P10 (optimistic) to P90 (severe surge) confidence intervals without heavy third-party statistical dependencies.",
+        code: "def monte_carlo_forecast(base, surge, runs=200):\n    paths = [surged + normal(0, 0.15*surged) for _ in range(runs)]\n    return np.percentile(paths, [10, 25, 75, 90], axis=0)"
+      },
+      allocation: {
+        title: "02 — Resource Allocation Strategies",
+        desc: "Evaluates 4 distinct triage policies when emergency department arrivals exceed bed or ICU capacity: First-Come First-Served, Clinical Severity, Demographic Equity (cohort quotas), and a Greedy Acuity-to-Cost heuristic maximizing throughput per resource unit consumed.",
+        code: "def allocate_optimized(cohort, beds, icu, vents):\n    # Greedy heuristic: marginal acuity benefit / resource cost\n    ranked = sorted(cohort, key=lambda p: (p.severity * 0.12) / p.cost, reverse=True)\n    return assign_resources(ranked, beds, icu, vents)"
+      },
+      strain: {
+        title: "03 — Multi-Resource Hospital Strain Scoring",
+        desc: "Evaluates a weighted composite index S_h in [0, 100] across general beds (25%), ICU beds (35%), mechanical ventilators (25%), and clinical staffing (15%). Facilities breaching >75% strain trigger the load-balancing transfer engine.",
+        code: "S_h = (0.25*(occ_beds/tot_beds) + 0.35*(occ_icu/tot_icu) + \n       0.25*(vents/tot_vents) + 0.15*(staff/tot_staff)) * 100"
+      },
+      transfer: {
+        title: "04 — Inter-Hospital Transfer Engine",
+        desc: "Redistributes excess patients from overloaded facilities (S_h > 75%) to nearby receivers while strictly preserving a 25% emergency surge headroom buffer for local emergency walk-ins. Matches pairs based on receiver headroom penalized by Euclidean transit distance.",
+        code: "transfer_excess = max(occupied_beds - floor(0.75 * total_beds), 0)\nMatchScore = 2*avail_beds + 5*avail_icu + staff_slack - 0.5*distance"
+      },
+      ml: {
+        title: "03 — ML Patient-Level Triage & Explainability",
+        desc: "Dual scikit-learn models: GradientBoostingClassifier predicting 4-class triage risk (Discharged, Admitted, Critical, Deceased) and GradientBoostingRegressor estimating hospital stay duration. Uses empirical baseline feature perturbation sensitivity for transparent bedside interpretability.",
+        code: "delta_j = P(class | patient_vitals) - P(class | vitals_with_mean_vital_j)\n# Evaluates top risk-increasing and protective factors"
+      },
+      decision: {
+        title: "05 — Operational Decision Support & Alerting",
+        desc: "Aggregates comparative triage curves, transfer manifests, and real-time network stress. An asynchronous non-blocking watchdog continuously monitors the network, dispatching rate-limited emergency alerts to Telegram when any hospital breaches >= 95% bed occupancy.",
+        code: "async def autonomous_monitor():\n    if occupancy >= 0.95 and rate_limit_cleared(hospital):\n        await httpx_client.post(TELEGRAM_API_URL, json=alert_payload)"
+      },
+      frontend: {
+        title: "React 19 + TypeScript Frontend Architecture",
+        desc: "Single Page Application built with React 19, TypeScript 5.6, and Vite 7. Features Recharts for interactive analytics, Leaflet with free OpenStreetMap tiles (zero API key), dark/light theme persistence, and an ErrorBoundary wrapper.",
+        code: "Components: Dashboard, ScenarioBuilder, StrategyComparator, TransferHub, AIPredictor\nState: ThemeContext, AuthContext, typed api.ts with Bearer injection"
+      },
+      backend: {
+        title: "FastAPI REST API & Invariant Validation",
+        desc: "High-performance asynchronous Python API using Pydantic v2 domain schemas with @model_validator ensuring physical healthcare invariants (e.g., ICU beds cannot exceed total facility beds). Lifespan manager controls background watchdog tasks.",
+        code: "@model_validator(mode='after')\ndef validate_bed_invariants(self):\n    if self.icu_beds + self.regular_beds > self.total_beds:\n        raise ValueError('ICU and regular beds exceed total capacity')"
+      },
+      database: {
+        title: "Dialect-Agnostic SQLAlchemy Persistence & Audit Trail",
+        desc: "SQLAlchemy 2.0 ORM engine supporting embedded SQLite for development and PostgreSQL connection pooling for production. Implements append-only audit logging with recursive credential and clinical vital sanitization.",
+        code: "Models: Hospital, Scenario, SimulationResult, AuditLog\nSanitization: sanitize_log_data() strips tokens, passwords, and raw vitals"
+      }
+    };
+
+    function openDetails(key) {
+      const data = DETAILS[key];
+      if (!data) return;
+      document.getElementById('m-title').innerText = data.title;
+      document.getElementById('m-desc').innerText = data.desc;
+      document.getElementById('m-code').innerText = data.code;
+      document.getElementById('info-modal').style.display = 'flex';
+    }
+
+    function closeModal(e) {
+      document.getElementById('info-modal').style.display = 'none';
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
+    });
+  </script>
+</body>
+</html>

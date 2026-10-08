@@ -1,19 +1,23 @@
 """
-CrisisForge AI — ML Prediction Model
-XGBoost-based patient outcome prediction with SHAP explainability.
-Trains on synthetic data, predicts severity & resource needs.
+CrisisForge AI — Machine Learning Outcome & Resource Predictor
+scikit-learn Gradient Boosting models for patient outcome classification and resource hour regression.
+Includes baseline feature perturbation sensitivity analysis for clinical interpretability.
 """
 
-import numpy as np
-import json
-from typing import Dict, List, Tuple
+import os
+import logging
+from typing import Dict, List, Tuple, Optional
 from pathlib import Path
+import numpy as np
+import joblib
 
-# We use sklearn since xgboost may not be installed; GradientBoosting is equivalent
 from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, mean_absolute_error
 
+from config import settings
+
+logger = logging.getLogger(__name__)
 
 # ─── Feature Engineering ───
 
@@ -22,6 +26,25 @@ FEATURE_NAMES = [
     "spo2", "temperature", "systolic_bp", "has_comorbidity", "comorbidity_count",
     "days_since_symptom_onset", "is_icu_candidate", "crisis_day",
     "hospital_bed_occupancy", "hospital_icu_occupancy",
+]
+
+# Baseline population reference values (used for feature perturbation attribution)
+BASELINE_FEATURE_VALUES = [
+    50.0,  # age
+    0.5,   # gender
+    5.0,   # severity_score
+    18.0,  # respiratory_rate
+    80.0,  # heart_rate
+    95.0,  # spo2
+    37.0,  # temperature
+    120.0, # systolic_bp
+    0.4,   # has_comorbidity
+    0.6,   # comorbidity_count
+    5.0,   # days_since_symptom_onset
+    0.3,   # is_icu_candidate
+    45.0,  # crisis_day
+    0.65,  # hospital_bed_occupancy
+    0.55,  # hospital_icu_occupancy
 ]
 
 
@@ -54,13 +77,12 @@ def generate_training_data(n_samples: int = 5000, seed: int = 42) -> Tuple[np.nd
         is_icu_candidate, crisis_day, bed_occ, icu_occ,
     ])
 
-    # Generate outcomes based on feature correlations
-    # Higher severity, age, lower spo2, higher occupancy → worse outcomes
+    # Generate outcomes based on clinical risk heuristics
     risk_score = (
-        (severity / 10) * 0.25 +
-        (age / 100) * 0.15 +
-        ((100 - spo2) / 30) * 0.2 +
-        (resp_rate / 45) * 0.1 +
+        (severity / 10.0) * 0.25 +
+        (age / 100.0) * 0.15 +
+        ((100.0 - spo2) / 30.0) * 0.2 +
+        (resp_rate / 45.0) * 0.1 +
         has_comorbidity * 0.1 +
         is_icu_candidate * 0.1 +
         bed_occ * 0.05 +
@@ -68,7 +90,7 @@ def generate_training_data(n_samples: int = 5000, seed: int = 42) -> Tuple[np.nd
     )
     risk_score += rng.normal(0, 0.1, n_samples)
 
-    # Outcomes: 0=discharged, 1=still_admitted, 2=critical, 3=deceased
+    # Outcomes: 0=Discharged, 1=Admitted, 2=Critical, 3=Deceased
     outcomes = np.zeros(n_samples, dtype=int)
     outcomes[risk_score > 0.45] = 1
     outcomes[risk_score > 0.65] = 2
@@ -76,10 +98,10 @@ def generate_training_data(n_samples: int = 5000, seed: int = 42) -> Tuple[np.nd
 
     # Resource hours needed
     resource_hours = (
-        severity * 8 +
-        is_icu_candidate * 48 +
-        comorbidity_count * 12 +
-        (age / 10) * 4 +
+        severity * 8.0 +
+        is_icu_candidate * 48.0 +
+        comorbidity_count * 12.0 +
+        (age / 10.0) * 4.0 +
         rng.normal(0, 10, n_samples)
     ).clip(4, 500)
 
@@ -87,7 +109,10 @@ def generate_training_data(n_samples: int = 5000, seed: int = 42) -> Tuple[np.nd
 
 
 class CrisisForgeMLModel:
-    """XGBoost-style ML model for patient outcome prediction."""
+    """
+    Supervised predictive models for patient risk triage and resource estimation.
+    Uses scikit-learn GradientBoostingClassifier and GradientBoostingRegressor.
+    """
 
     def __init__(self):
         self.outcome_model = GradientBoostingClassifier(
@@ -96,11 +121,30 @@ class CrisisForgeMLModel:
         self.resource_model = GradientBoostingRegressor(
             n_estimators=80, max_depth=4, learning_rate=0.1, random_state=42
         )
-        self.is_trained = False
-        self.metrics = {}
+        self.is_trained: bool = False
+        self.metrics: Dict = {}
 
-    def train(self, n_samples: int = 5000):
-        """Train the model on synthetic data."""
+    def load_from_artifact(self, artifact_path: Optional[Path] = None) -> bool:
+        """Attempt to load pre-trained models from joblib artifact."""
+        path = artifact_path or settings.MODEL_PATH
+        if not path.exists():
+            return False
+
+        try:
+            data = joblib.load(path)
+            if isinstance(data, dict) and "outcome_model" in data and "resource_model" in data:
+                self.outcome_model = data["outcome_model"]
+                self.resource_model = data["resource_model"]
+                self.metrics = data.get("metrics", {})
+                self.is_trained = True
+                logger.info(f"Loaded ML model from {path}")
+                return True
+        except Exception as exc:
+            logger.warning(f"Could not load pre-trained model from {path}: {exc}. Falling back to training.")
+        return False
+
+    def train(self, n_samples: int = 5000) -> Dict:
+        """Train models on synthetic clinical data."""
         X, y_outcome, y_resource = generate_training_data(n_samples)
 
         X_train, X_test, y_train, y_test = train_test_split(X, y_outcome, test_size=0.2, random_state=42)
@@ -113,8 +157,8 @@ class CrisisForgeMLModel:
         yr_pred = self.resource_model.predict(X_test)
 
         self.metrics = {
-            "outcome_accuracy": round(accuracy_score(y_test, y_pred) * 100, 1),
-            "resource_mae_hours": round(mean_absolute_error(yr_test, yr_pred), 1),
+            "outcome_accuracy": round(float(accuracy_score(y_test, y_pred) * 100), 1),
+            "resource_mae_hours": round(float(mean_absolute_error(yr_test, yr_pred)), 1),
             "training_samples": n_samples,
             "test_samples": len(X_test),
             "features_used": len(FEATURE_NAMES),
@@ -124,29 +168,32 @@ class CrisisForgeMLModel:
         self.is_trained = True
         return self.metrics
 
+    def _extract_feature_vector(self, patient_data: Dict) -> np.ndarray:
+        """Extract a 2D feature array matching FEATURE_NAMES order."""
+        return np.array([[
+            float(patient_data.get("age", 50.0)),
+            float(patient_data.get("gender", 0)),
+            float(patient_data.get("severity_score", 5.0)),
+            float(patient_data.get("respiratory_rate", 18.0)),
+            float(patient_data.get("heart_rate", 80.0)),
+            float(patient_data.get("spo2", 95.0)),
+            float(patient_data.get("temperature", 37.0)),
+            float(patient_data.get("systolic_bp", 120.0)),
+            float(patient_data.get("has_comorbidity", 0)),
+            float(patient_data.get("comorbidity_count", 0)),
+            float(patient_data.get("days_since_symptom_onset", 3.0)),
+            float(patient_data.get("is_icu_candidate", 0)),
+            float(patient_data.get("crisis_day", 15.0)),
+            float(patient_data.get("hospital_bed_occupancy", 0.7)),
+            float(patient_data.get("hospital_icu_occupancy", 0.6)),
+        ]])
+
     def predict_patient(self, patient_data: Dict) -> Dict:
         """Predict outcome and resource needs for a single patient."""
         if not self.is_trained:
             self.train()
 
-        features = np.array([[
-            patient_data.get("age", 50),
-            patient_data.get("gender", 0),
-            patient_data.get("severity_score", 5),
-            patient_data.get("respiratory_rate", 18),
-            patient_data.get("heart_rate", 80),
-            patient_data.get("spo2", 95),
-            patient_data.get("temperature", 37.0),
-            patient_data.get("systolic_bp", 120),
-            patient_data.get("has_comorbidity", 0),
-            patient_data.get("comorbidity_count", 0),
-            patient_data.get("days_since_symptom_onset", 3),
-            patient_data.get("is_icu_candidate", 0),
-            patient_data.get("crisis_day", 15),
-            patient_data.get("hospital_bed_occupancy", 0.7),
-            patient_data.get("hospital_icu_occupancy", 0.6),
-        ]])
-
+        features = self._extract_feature_vector(patient_data)
         outcome_probs = self.outcome_model.predict_proba(features)[0]
         predicted_outcome = int(self.outcome_model.predict(features)[0])
         predicted_hours = float(self.resource_model.predict(features)[0])
@@ -156,12 +203,12 @@ class CrisisForgeMLModel:
         return {
             "predicted_outcome": outcome_labels[predicted_outcome],
             "outcome_probabilities": {
-                "discharged": round(float(outcome_probs[0]) * 100, 1) if len(outcome_probs) > 0 else 0,
-                "admitted": round(float(outcome_probs[1]) * 100, 1) if len(outcome_probs) > 1 else 0,
-                "critical": round(float(outcome_probs[2]) * 100, 1) if len(outcome_probs) > 2 else 0,
-                "deceased": round(float(outcome_probs[3]) * 100, 1) if len(outcome_probs) > 3 else 0,
+                "discharged": round(float(outcome_probs[0]) * 100, 1) if len(outcome_probs) > 0 else 0.0,
+                "admitted": round(float(outcome_probs[1]) * 100, 1) if len(outcome_probs) > 1 else 0.0,
+                "critical": round(float(outcome_probs[2]) * 100, 1) if len(outcome_probs) > 2 else 0.0,
+                "deceased": round(float(outcome_probs[3]) * 100, 1) if len(outcome_probs) > 3 else 0.0,
             },
-            "predicted_resource_hours": round(predicted_hours, 1),
+            "predicted_resource_hours": max(0.5, round(predicted_hours, 1)),
             "risk_level": "Critical" if predicted_outcome >= 2 else "Moderate" if predicted_outcome == 1 else "Low",
         }
 
@@ -170,16 +217,20 @@ class CrisisForgeMLModel:
         return [self.predict_patient(p) for p in patients]
 
     def get_feature_importance(self) -> Dict:
-        """Get feature importance from the trained model (SHAP-like)."""
+        """
+        Get global feature importance from the trained tree ensembles (MDI / impurity-based).
+        """
         if not self.is_trained:
             self.train()
 
         outcome_importance = self.outcome_model.feature_importances_
         resource_importance = self.resource_model.feature_importances_
 
-        # Normalize to percentages
-        outcome_pct = (outcome_importance / outcome_importance.sum() * 100)
-        resource_pct = (resource_importance / resource_importance.sum() * 100)
+        outcome_sum = outcome_importance.sum() or 1.0
+        resource_sum = resource_importance.sum() or 1.0
+
+        outcome_pct = outcome_importance / outcome_sum * 100
+        resource_pct = resource_importance / resource_sum * 100
 
         features = []
         for i, name in enumerate(FEATURE_NAMES):
@@ -195,59 +246,42 @@ class CrisisForgeMLModel:
         return {
             "feature_importance": features,
             "top_predictors": [f["feature"] for f in features[:5]],
-            "model_type": "GradientBoosting (XGBoost-equivalent)",
+            "model_type": "scikit-learn GradientBoosting (GBM)",
             "model_metrics": self.metrics,
         }
 
     def explain_prediction(self, patient_data: Dict) -> Dict:
         """
-        Generate a SHAP-like explanation for a single prediction.
-        Uses feature perturbation to estimate contribution of each feature.
+        Generate feature attribution explanation for a single prediction.
+        Uses univariate baseline perturbation (comparing current feature value to population mean baseline).
+        Note: This is an empirical sensitivity attribution method, distinct from game-theoretic TreeSHAP.
         """
         if not self.is_trained:
             self.train()
 
         prediction = self.predict_patient(patient_data)
-        base_features = np.array([[
-            patient_data.get("age", 50),
-            patient_data.get("gender", 0),
-            patient_data.get("severity_score", 5),
-            patient_data.get("respiratory_rate", 18),
-            patient_data.get("heart_rate", 80),
-            patient_data.get("spo2", 95),
-            patient_data.get("temperature", 37.0),
-            patient_data.get("systolic_bp", 120),
-            patient_data.get("has_comorbidity", 0),
-            patient_data.get("comorbidity_count", 0),
-            patient_data.get("days_since_symptom_onset", 3),
-            patient_data.get("is_icu_candidate", 0),
-            patient_data.get("crisis_day", 15),
-            patient_data.get("hospital_bed_occupancy", 0.7),
-            patient_data.get("hospital_icu_occupancy", 0.6),
-        ]])
+        base_features = self._extract_feature_vector(patient_data)
 
-        # Mean values for baseline
-        mean_vals = [50, 0.5, 5, 18, 80, 95, 37.0, 120, 0.4, 0.6, 5, 0.3, 45, 0.65, 0.55]
-
-        # Perturbation-based contribution estimation
+        # Baseline perturbation against population reference mean
         base_risk = self.outcome_model.predict_proba(base_features)[0]
+        max_class = int(np.argmax(base_risk))
         contributions = []
 
         for i, name in enumerate(FEATURE_NAMES):
             perturbed = base_features.copy()
-            perturbed[0, i] = mean_vals[i]
+            perturbed[0, i] = BASELINE_FEATURE_VALUES[i]
             perturbed_risk = self.outcome_model.predict_proba(perturbed)[0]
 
-            # Contribution = difference when feature is at mean vs actual
-            max_class = np.argmax(base_risk)
+            # Contribution = difference when feature is actual vs when held at reference baseline
             contribution = float(base_risk[max_class] - perturbed_risk[max_class])
+            contribution_pct = round(contribution * 100, 2)
 
             contributions.append({
                 "feature": name,
                 "value": float(base_features[0, i]),
-                "contribution": round(contribution * 100, 2),
+                "contribution": contribution_pct,
                 "direction": "increases_risk" if contribution > 0 else "decreases_risk",
-                "magnitude": abs(round(contribution * 100, 2)),
+                "magnitude": abs(contribution_pct),
             })
 
         contributions.sort(key=lambda x: x["magnitude"], reverse=True)
@@ -255,22 +289,25 @@ class CrisisForgeMLModel:
         return {
             "prediction": prediction,
             "explanation": {
-                "method": "Feature Perturbation (SHAP-equivalent)",
+                "method": "Baseline Feature Perturbation Attribution",
+                "reference": "Empirical univariate sensitivity relative to population baseline",
                 "contributions": contributions,
-                "top_risk_factors": [c for c in contributions[:5] if c["direction"] == "increases_risk"],
+                "top_risk_factors": [c for c in contributions if c["direction"] == "increases_risk"][:5],
                 "top_protective_factors": [c for c in contributions if c["direction"] == "decreases_risk"][:3],
             },
         }
 
 
-# Global model instance (lazy-loaded)
-_model: CrisisForgeMLModel | None = None
+# Global model instance (lazy-loaded / singleton)
+_model: Optional[CrisisForgeMLModel] = None
 
 
 def get_model() -> CrisisForgeMLModel:
-    """Get or create the global ML model instance."""
+    """Get or create the global ML model instance, loading artifact if present."""
     global _model
     if _model is None:
         _model = CrisisForgeMLModel()
-        _model.train()
+        loaded = _model.load_from_artifact()
+        if not loaded:
+            _model.train()
     return _model

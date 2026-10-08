@@ -25,8 +25,9 @@ export default function TransferHub() {
         try {
             const res = await api.getTransfers(6);
             setData(res);
-        } catch (err: any) {
-            setError(err.message || 'Failed to fetch transfer data');
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : 'Failed to fetch transfer data';
+            setError(msg);
         }
         setLoading(false);
     };
@@ -48,7 +49,7 @@ export default function TransferHub() {
         <div>
             <motion.div className="page-header" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
                 <h2>🚑 Transfer Hub</h2>
-                <p>Autonomous inter-hospital patient transfer optimization</p>
+                <p>Inter-hospital patient redistribution and load balancing</p>
             </motion.div>
 
             <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>

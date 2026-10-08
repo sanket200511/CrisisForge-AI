@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, FlaskConical, GitCompare, FileBarChart, Heart,
-    ArrowRightLeft, Brain, Bell, MapPin, LogOut, Sun, Moon, Menu, X
+    ArrowRightLeft, Brain, Bell, MapPin, LogOut, Sun, Moon, Menu, X, FileText
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -82,6 +82,34 @@ export default function Sidebar() {
                 </nav>
 
                 <div className="sidebar-footer" style={{ padding: '16px 12px 0', borderTop: '1px solid var(--border-subtle)' }}>
+                    {/* Printable A4 Showcase Link */}
+                    <a
+                        href="/project_showcase.html"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 8,
+                            width: '100%',
+                            padding: '8px 12px',
+                            marginBottom: 10,
+                            borderRadius: 8,
+                            background: 'rgba(2, 132, 199, 0.1)',
+                            border: '1px solid rgba(2, 132, 199, 0.3)',
+                            color: 'var(--accent-cyan)',
+                            textDecoration: 'none',
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                            transition: 'all 0.2s ease',
+                        }}
+                        title="Open Printable A4 Project Blueprint"
+                    >
+                        <FileText size={16} />
+                        <span>Printable A4 Blueprint</span>
+                    </a>
+
                     {/* Creative Theme Toggle */}
                     <button className="theme-toggle" onClick={toggleTheme}>
                         <span className="toggle-icon">

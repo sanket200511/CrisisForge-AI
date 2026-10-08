@@ -3,12 +3,31 @@
  * Includes transfer engine, ML model, and Telegram integrations
  */
 
+import { auth } from './firebase';
+
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(options?.headers as Record<string, string> || {}),
+    };
+
+    // Propagate client identity token if user is authenticated
+    try {
+        if (auth?.currentUser) {
+            const token = await auth.currentUser.getIdToken();
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+        }
+    } catch {
+        // Fallback for unauthenticated requests
+    }
+
     const res = await fetch(`${BASE_URL}${endpoint}`, {
-        headers: { 'Content-Type': 'application/json' },
         ...options,
+        headers,
     });
     if (!res.ok) throw new Error(`API Error: ${res.status} ${res.statusText}`);
     return res.json();

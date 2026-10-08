@@ -74,7 +74,7 @@ export default function AIPredictor() {
         <div>
             <motion.div className="page-header" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
                 <h2>🧠 AI Predictor</h2>
-                <p>ML-powered patient outcome prediction with SHAP explainability</p>
+                <p>ML-powered patient outcome prediction with feature sensitivity attribution</p>
             </motion.div>
 
             {/* Patient Input Form */}
@@ -86,13 +86,13 @@ export default function AIPredictor() {
                             <div key={key} style={{ marginBottom: 16 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: '0.85rem', fontWeight: 600 }}>
                                     <span style={{ color: 'var(--text-secondary)' }}>{cfg.label}</span>
-                                    <span style={{ color: 'var(--accent-cyan)' }}>{(patient as any)[key]}</span>
+                                    <span style={{ color: 'var(--accent-cyan)' }}>{patient[key as keyof PatientInput]}</span>
                                 </div>
                                 <input
                                     type="range"
                                     className="range-slider"
                                     min={cfg.min} max={cfg.max} step={cfg.step}
-                                    value={(patient as any)[key]}
+                                    value={patient[key as keyof PatientInput]}
                                     onChange={e => updateField(key, parseFloat(e.target.value))}
                                 />
                             </div>
@@ -173,7 +173,7 @@ export default function AIPredictor() {
                             {importance && (
                                 <div style={{ marginTop: 12, padding: '8px 12px', background: 'rgba(148,163,184,0.05)', borderRadius: 8 }}>
                                     <p style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                                        Model: {importance.model_type} • Accuracy: {(importance.model_metrics as any)?.outcome_accuracy}% • {(importance.model_metrics as any)?.features_used} features
+                                        Model: {importance.model_type} • Accuracy: {String(importance.model_metrics?.outcome_accuracy ?? 'N/A')}% • {String(importance.model_metrics?.features_used ?? '15')} features
                                     </p>
                                 </div>
                             )}
@@ -187,7 +187,7 @@ export default function AIPredictor() {
                 <>
                     <div className="tab-group" style={{ width: 'fit-content', marginTop: 8 }}>
                         <button className={`tab-btn ${tab === 'explain' ? 'active' : ''}`} onClick={() => setTab('explain')}>
-                            <Shield size={14} /> SHAP Explanation
+                            <Shield size={14} /> Feature Attribution
                         </button>
                         <button className={`tab-btn ${tab === 'importance' ? 'active' : ''}`} onClick={() => setTab('importance')}>
                             <Zap size={14} /> Feature Importance

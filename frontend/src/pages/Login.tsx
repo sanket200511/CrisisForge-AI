@@ -23,8 +23,9 @@ export default function Login() {
             setLoading(true);
             await signInWithGoogle();
             navigate('/', { replace: true });
-        } catch (err: any) {
-            setError(err.message || 'Failed to sign in with Google');
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : 'Failed to sign in with Google';
+            setError(msg);
         } finally {
             setLoading(false);
         }
@@ -40,8 +41,8 @@ export default function Login() {
                 await signInWithEmail(email, password);
             }
             navigate('/', { replace: true });
-        } catch (err: any) {
-            let msg = err.message || 'Authentication failed';
+        } catch (err: unknown) {
+            let msg = err instanceof Error ? err.message : 'Authentication failed';
             if (msg.includes('auth/invalid-credential')) msg = 'Invalid email or password.';
             if (msg.includes('auth/email-already-in-use')) msg = 'Email is already registered.';
             if (msg.includes('auth/weak-password')) msg = 'Password should be at least 6 characters.';
@@ -57,8 +58,8 @@ export default function Login() {
             setLoading(true);
             await resetPassword(resetEmail);
             setResetSent(true);
-        } catch (err: any) {
-            let msg = err.message || 'Failed to send reset email.';
+        } catch (err: unknown) {
+            let msg = err instanceof Error ? err.message : 'Failed to send reset email.';
             if (msg.includes('auth/user-not-found')) msg = 'No account found with this email.';
             setError(msg);
         } finally {
